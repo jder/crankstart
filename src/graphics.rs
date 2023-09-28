@@ -352,6 +352,24 @@ impl Bitmap {
             rect,
         )
     }
+
+    pub fn set_mask(&self, mask: Option<Bitmap>) -> Result<(), Error> {
+        pd_func_caller!(
+            (*Graphics::get_ptr()).setBitmapMask,
+            self.inner.borrow().raw_bitmap,
+            mask.map(|mask| mask.inner.borrow().raw_bitmap)
+                .unwrap_or(ptr::null_mut()),
+        )?;
+        Ok(())
+    }
+
+    pub fn get_mask(&self) -> Result<Bitmap, Error> {
+        let raw_bitmap = pd_func_caller!(
+            (*Graphics::get_ptr()).getBitmapMask,
+            self.inner.borrow().raw_bitmap,
+        )?;
+        Ok(Bitmap::new(raw_bitmap, false)) // TODO: Is this owned?
+    }
 }
 
 type OptionalBitmap<'a> = Option<&'a mut Bitmap>;
@@ -549,6 +567,14 @@ impl Graphics {
 
     pub fn set_draw_mode(&self, mode: LCDBitmapDrawMode) -> Result<(), Error> {
         pd_func_caller!((*self.0).setDrawMode, mode)
+    }
+
+    pub fn set_stencil_image(&self, image: &Bitmap, tile: bool) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.0).setStencilImage,
+            image.inner.borrow().raw_bitmap,
+            tile as i32
+        )
     }
 
     pub fn mark_updated_rows(&self, range: RangeInclusive<i32>) -> Result<(), Error> {
