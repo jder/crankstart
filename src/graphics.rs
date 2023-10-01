@@ -51,6 +51,9 @@ pub struct BitmapData {
     pub height: c_int,
     pub rowbytes: c_int,
     pub hasmask: bool,
+
+    pub pixel_data: *mut u8,
+    pub mask_data: *mut u8,
 }
 
 #[derive(Debug)]
@@ -64,6 +67,7 @@ impl BitmapInner {
         let mut width = 0;
         let mut height = 0;
         let mut rowbytes = 0;
+        let mut pixel_ptr = ptr::null_mut();
         let mut mask_ptr = ptr::null_mut();
         pd_func_caller!(
             (*Graphics::get_ptr()).getBitmapData,
@@ -72,13 +76,15 @@ impl BitmapInner {
             &mut height,
             &mut rowbytes,
             &mut mask_ptr,
-            ptr::null_mut(),
+            &mut pixel_ptr,
         )?;
         Ok(BitmapData {
             width,
             height,
             rowbytes,
             hasmask: !mask_ptr.is_null(),
+            pixel_data: pixel_ptr,
+            mask_data: mask_ptr,
         })
     }
 
