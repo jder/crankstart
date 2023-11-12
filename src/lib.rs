@@ -301,7 +301,7 @@ fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
         };
         write!(
             output,
-            "panic: {} @ {}:{}\0",
+            "panic: {} @ {}:{}\n",
             payload,
             location.file(),
             location.line()
@@ -309,7 +309,7 @@ fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
         .expect("write");
         System::log_to_console(output.as_str());
     } else {
-        System::log_to_console("panic\0");
+        System::log_to_console("panic\n");
     }
     #[cfg(target_os = "macos")]
     {
