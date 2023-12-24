@@ -29,6 +29,8 @@ pub mod sampleplayer;
 pub use sampleplayer::{AudioSample, SamplePlayer};
 pub mod fileplayer;
 pub use fileplayer::FilePlayer;
+pub mod synth;
+pub use synth::Synth;
 
 // When the Playdate system struct is created, it passes the given playdate_sound to Sound::new,
 // which then replaces this.
@@ -44,6 +46,7 @@ pub struct Sound {
     raw_file_player: *const crankstart_sys::playdate_sound_fileplayer,
     raw_sample: *const crankstart_sys::playdate_sound_sample,
     raw_sample_player: *const crankstart_sys::playdate_sound_sampleplayer,
+    raw_synth: *const crankstart_sys::playdate_sound_synth,
 }
 
 // Not implemented: addSource, removeSource, setMicCallback, and getHeadphoneState (waiting on
@@ -55,6 +58,7 @@ impl Sound {
             raw_file_player: ptr::null(),
             raw_sample: ptr::null(),
             raw_sample_player: ptr::null(),
+            raw_synth: ptr::null(),
         }
     }
 
@@ -70,12 +74,15 @@ impl Sound {
         ensure!(!raw_sample.is_null(), "Null sound.sample");
         let raw_sample_player = unsafe { (*raw_sound).sampleplayer };
         ensure!(!raw_sample_player.is_null(), "Null sound.sampleplayer");
+        let raw_synth = unsafe { (*raw_sound).synth };
+        ensure!(!raw_synth.is_null(), "Null sound.synth");
 
         let sound = Self {
             raw_sound,
             raw_file_player,
             raw_sample,
             raw_sample_player,
+            raw_synth,
         };
         unsafe { SOUND = sound };
         Ok(())
@@ -132,5 +139,9 @@ impl Sound {
             headphone as ctypes::c_int,
             speaker as ctypes::c_int
         )
+    }
+
+    pub fn new_synth(&self) -> Result<crate::sound::Synth> {
+        crate::sound::Synth::new(self.raw_synth)
     }
 }
