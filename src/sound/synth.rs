@@ -2,6 +2,8 @@ use crate::{pd_func_caller, pd_func_caller_log};
 use anyhow::{anyhow, ensure, Error, Result};
 use crankstart_sys::{PDSynth, PDSynthSignalValue};
 
+use super::SoundSource;
+
 pub struct Synth {
     raw_subsystem: *const crankstart_sys::playdate_sound_synth,
     raw_synth: *mut PDSynth,
@@ -79,13 +81,13 @@ impl Drop for Synth {
 }
 
 /// Wrapper for known-good PDSynthSignalValue pointers.
-pub struct SignalValue<'a> {
+pub struct UnsafeSignalValue<'a> {
     value: *mut PDSynthSignalValue,
     _marker: core::marker::PhantomData<&'a ()>,
 }
 
 pub trait Signal {
-    fn as_signal_value(&self) -> SignalValue;
+    fn as_signal_value(&self) -> UnsafeSignalValue;
 }
 
 pub struct LFO {
@@ -116,10 +118,17 @@ impl Drop for LFO {
 }
 
 impl Signal for LFO {
-    fn as_signal_value(&self) -> SignalValue {
-        SignalValue {
+    fn as_signal_value(&self) -> UnsafeSignalValue {
+        UnsafeSignalValue {
             value: self.raw_lfo as *mut PDSynthSignalValue,
             _marker: core::marker::PhantomData,
         }
+    }
+}
+
+impl SoundSource for Synth {
+    fn get_sound_source(&self) -> super::UnsafeSoundSource {
+        // SAFETY: Synth is a sound source we keep alive for self's lifetime
+        unsafe { super::UnsafeSoundSource::new(self.raw_synth as *mut crankstart_sys::SoundSource) }
     }
 }

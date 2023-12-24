@@ -19,7 +19,9 @@
 //! ```
 
 use crate::{pd_func_caller, pd_func_caller_log};
+use core::marker::PhantomData;
 use crankstart_sys::ctypes;
+use crankstart_sys::LFOType;
 
 use anyhow::{anyhow, ensure, Error, Result};
 use core::ptr;
@@ -31,6 +33,11 @@ pub mod fileplayer;
 pub use fileplayer::FilePlayer;
 pub mod synth;
 pub use synth::Synth;
+pub use synth::LFO;
+pub mod effect;
+pub use effect::Overdrive;
+pub mod channel;
+pub use channel::SoundChannel;
 
 // When the Playdate system struct is created, it passes the given playdate_sound to Sound::new,
 // which then replaces this.
@@ -47,6 +54,9 @@ pub struct Sound {
     raw_sample: *const crankstart_sys::playdate_sound_sample,
     raw_sample_player: *const crankstart_sys::playdate_sound_sampleplayer,
     raw_synth: *const crankstart_sys::playdate_sound_synth,
+    raw_lfo: *const crankstart_sys::playdate_sound_lfo,
+    raw_overdrive: *const crankstart_sys::playdate_sound_effect_overdrive,
+    raw_channel: *const crankstart_sys::playdate_sound_channel,
 }
 
 // Not implemented: addSource, removeSource, setMicCallback, and getHeadphoneState (waiting on
@@ -59,6 +69,9 @@ impl Sound {
             raw_sample: ptr::null(),
             raw_sample_player: ptr::null(),
             raw_synth: ptr::null(),
+            raw_lfo: ptr::null(),
+            raw_overdrive: ptr::null(),
+            raw_channel: ptr::null(),
         }
     }
 
@@ -76,6 +89,12 @@ impl Sound {
         ensure!(!raw_sample_player.is_null(), "Null sound.sampleplayer");
         let raw_synth = unsafe { (*raw_sound).synth };
         ensure!(!raw_synth.is_null(), "Null sound.synth");
+        let raw_lfo = unsafe { (*raw_sound).lfo };
+        ensure!(!raw_lfo.is_null(), "Null sound.lfo");
+        let raw_overdrive = unsafe { (*(*raw_sound).effect).overdrive };
+        ensure!(!raw_overdrive.is_null(), "Null sound.effect_overdrive");
+        let raw_channel = unsafe { (*raw_sound).channel };
+        ensure!(!raw_channel.is_null(), "Null sound.channel");
 
         let sound = Self {
             raw_sound,
@@ -83,6 +102,9 @@ impl Sound {
             raw_sample,
             raw_sample_player,
             raw_synth,
+            raw_lfo,
+            raw_overdrive,
+            raw_channel,
         };
         unsafe { SOUND = sound };
         Ok(())
@@ -141,7 +163,43 @@ impl Sound {
         )
     }
 
-    pub fn new_synth(&self) -> Result<crate::sound::Synth> {
+    pub fn new_synth(&self) -> Result<Synth> {
         crate::sound::Synth::new(self.raw_synth)
+    }
+
+    pub fn new_lfo(&self, lfo_type: LFOType) -> Result<LFO> {
+        crate::sound::LFO::new(self.raw_lfo, lfo_type)
+    }
+
+    pub fn new_overdrive(&self) -> Result<Overdrive> {
+        crate::sound::Overdrive::new(self.raw_overdrive)
+    }
+
+    pub fn new_channel(&self) -> Result<SoundChannel> {
+        crate::sound::SoundChannel::new(self.raw_channel)
+    }
+}
+
+pub trait SoundSource {
+    fn get_sound_source(&self) -> UnsafeSoundSource;
+}
+
+pub struct UnsafeSoundSource<'a> {
+    source: *mut crankstart_sys::SoundSource,
+    _marker: PhantomData<&'a ()>,
+}
+
+impl<'a> UnsafeSoundSource<'a> {
+    /// # Safety
+    /// `effect` must be a valid pointer to a `SoundSource` struct for 'a.
+    pub unsafe fn new(source: *mut crankstart_sys::SoundSource) -> Self {
+        Self {
+            source,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn source(&self) -> *mut crankstart_sys::SoundSource {
+        self.source
     }
 }

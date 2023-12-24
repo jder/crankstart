@@ -4,6 +4,8 @@ use crankstart_sys::ctypes;
 use alloc::rc::Rc;
 use anyhow::{anyhow, ensure, Error, Result};
 
+use super::SoundSource;
+
 /// Note: Make sure you hold on to a SamplePlayer until the sample has played as much as you want,
 /// because dropping it will stop playback.
 #[derive(Debug)]
@@ -216,5 +218,14 @@ impl AudioSample {
             (*self.inner.raw_subsystem).getLength,
             self.inner.raw_audio_sample
         )
+    }
+}
+
+impl SoundSource for SamplePlayer {
+    fn get_sound_source(&self) -> super::UnsafeSoundSource {
+        // SAFETY: SamplePlayer is a sound source we keep alive for self's lifetime
+        unsafe {
+            super::UnsafeSoundSource::new(self.raw_player as *mut crankstart_sys::SoundSource)
+        }
     }
 }

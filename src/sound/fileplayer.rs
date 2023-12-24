@@ -4,6 +4,8 @@ use crankstart_sys::ctypes;
 use anyhow::{anyhow, ensure, Error, Result};
 use cstr_core::CString;
 
+use super::{SoundSource, UnsafeSoundSource};
+
 /// Note: Make sure you hold on to a FilePlayer until the file has played as much as you want,
 /// because dropping it will stop playback.
 #[derive(Debug)]
@@ -176,5 +178,12 @@ impl FilePlayer {
     /// Returns the length of the loaded file, in seconds.
     pub fn get_length(&self) -> Result<f32> {
         pd_func_caller!((*self.raw_subsystem).getLength, self.raw_player)
+    }
+}
+
+impl SoundSource for FilePlayer {
+    fn get_sound_source(&self) -> UnsafeSoundSource {
+        // Safety: FilePlayer is a SoundSource, alive for the length of self
+        unsafe { UnsafeSoundSource::new(self.raw_player as *mut crankstart_sys::SoundSource) }
     }
 }
