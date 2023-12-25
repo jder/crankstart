@@ -182,6 +182,6 @@ impl Sound {
 
 /// # Safety
 /// This trait must guarantee that the returned pointer is valid for the `self` lifetime.
-pub unsafe trait SoundSource {
+pub unsafe trait SoundSource: 'static {
     fn get_sound_source(&self) -> *mut crankstart_sys::SoundSource;
 }
