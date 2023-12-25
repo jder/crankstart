@@ -4,7 +4,7 @@ use crankstart_sys::ctypes;
 use anyhow::{anyhow, ensure, Error, Result};
 use cstr_core::CString;
 
-use super::{SoundSource, UnsafeSoundSource};
+use super::SoundSource;
 
 /// Note: Make sure you hold on to a FilePlayer until the file has played as much as you want,
 /// because dropping it will stop playback.
@@ -181,9 +181,9 @@ impl FilePlayer {
     }
 }
 
-impl SoundSource for FilePlayer {
-    fn get_sound_source(&self) -> UnsafeSoundSource {
-        // Safety: FilePlayer is a SoundSource, alive for the length of self
-        unsafe { UnsafeSoundSource::new(self.raw_player as *mut crankstart_sys::SoundSource) }
+// SAFETY: FilePlayers are sound sources, we keep it alive for the lifetime of the FilePlayer,
+unsafe impl SoundSource for FilePlayer {
+    fn get_sound_source(&self) -> *mut crankstart_sys::SoundSource {
+        self.raw_player as *mut crankstart_sys::SoundSource
     }
 }

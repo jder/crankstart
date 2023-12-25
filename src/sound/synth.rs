@@ -11,11 +11,11 @@ pub struct Synth {
 
 impl Synth {
     pub(crate) fn new(
-        raw_synth: *const crankstart_sys::playdate_sound_synth,
+        raw_subsystem: *const crankstart_sys::playdate_sound_synth,
     ) -> Result<Self, Error> {
         Ok(Self {
-            raw_subsystem: raw_synth,
-            raw_synth: pd_func_caller!((*raw_synth).newSynth)?,
+            raw_subsystem,
+            raw_synth: pd_func_caller!((*raw_subsystem).newSynth)?,
         })
     }
 
@@ -27,7 +27,7 @@ impl Synth {
         pd_func_caller!(
             (*self.raw_subsystem).setFrequencyModulator,
             self.raw_synth,
-            frequency_mod.as_signal_value().value
+            frequency_mod.as_signal_value()
         )
     }
 
@@ -80,14 +80,10 @@ impl Drop for Synth {
     }
 }
 
-/// Wrapper for known-good PDSynthSignalValue pointers.
-pub struct UnsafeSignalValue<'a> {
-    value: *mut PDSynthSignalValue,
-    _marker: core::marker::PhantomData<&'a ()>,
-}
-
-pub trait Signal {
-    fn as_signal_value(&self) -> UnsafeSignalValue;
+/// # Safety
+/// This trait must guarantee that the returned pointer is valid for the `self` lifetime.
+pub unsafe trait Signal {
+    fn as_signal_value(&self) -> *mut PDSynthSignalValue;
 }
 
 pub struct LFO {
@@ -109,6 +105,22 @@ impl LFO {
     pub fn set_center(&mut self, center: f32) -> Result<()> {
         pd_func_caller!((*self.raw_subsystem).setCenter, self.raw_lfo, center)
     }
+
+    pub fn set_rate(&mut self, rate: f32) -> Result<()> {
+        pd_func_caller!((*self.raw_subsystem).setRate, self.raw_lfo, rate)
+    }
+
+    pub fn set_depth(&mut self, depth: f32) -> Result<()> {
+        pd_func_caller!((*self.raw_subsystem).setDepth, self.raw_lfo, depth)
+    }
+
+    pub fn set_retrigger(&mut self, retrigger: bool) -> Result<()> {
+        pd_func_caller!(
+            (*self.raw_subsystem).setRetrigger,
+            self.raw_lfo,
+            retrigger as i32
+        )
+    }
 }
 
 impl Drop for LFO {
@@ -117,18 +129,15 @@ impl Drop for LFO {
     }
 }
 
-impl Signal for LFO {
-    fn as_signal_value(&self) -> UnsafeSignalValue {
-        UnsafeSignalValue {
-            value: self.raw_lfo as *mut PDSynthSignalValue,
-            _marker: core::marker::PhantomData,
-        }
+unsafe impl Signal for LFO {
+    fn as_signal_value(&self) -> *mut PDSynthSignalValue {
+        self.raw_lfo as *mut PDSynthSignalValue
     }
 }
 
-impl SoundSource for Synth {
-    fn get_sound_source(&self) -> super::UnsafeSoundSource {
-        // SAFETY: Synth is a sound source we keep alive for self's lifetime
-        unsafe { super::UnsafeSoundSource::new(self.raw_synth as *mut crankstart_sys::SoundSource) }
+// SAFETY: Synth is a sound source we keep alive for self's lifetime
+unsafe impl SoundSource for Synth {
+    fn get_sound_source(&self) -> *mut crankstart_sys::SoundSource {
+        self.raw_synth as *mut crankstart_sys::SoundSource
     }
 }

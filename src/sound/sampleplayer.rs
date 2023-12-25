@@ -221,11 +221,9 @@ impl AudioSample {
     }
 }
 
-impl SoundSource for SamplePlayer {
-    fn get_sound_source(&self) -> super::UnsafeSoundSource {
-        // SAFETY: SamplePlayer is a sound source we keep alive for self's lifetime
-        unsafe {
-            super::UnsafeSoundSource::new(self.raw_player as *mut crankstart_sys::SoundSource)
-        }
+// SAFETY: players are sound sources which we keep alive for self's lifetime
+unsafe impl SoundSource for SamplePlayer {
+    fn get_sound_source(&self) -> *mut crankstart_sys::SoundSource {
+        self.raw_player as *mut crankstart_sys::SoundSource
     }
 }

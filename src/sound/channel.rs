@@ -14,16 +14,20 @@ impl SoundChannel {
         raw_subsystem: *const crankstart_sys::playdate_sound_channel,
     ) -> Result<Self, Error> {
         Ok(Self {
-            raw_subsystem: raw_subsystem,
+            raw_subsystem,
             raw_channel: pd_func_caller!((*raw_subsystem).newChannel)?,
         })
+    }
+
+    pub fn set_volume(&mut self, volume: f32) -> Result<()> {
+        pd_func_caller!((*self.raw_subsystem).setVolume, self.raw_channel, volume)
     }
 
     pub fn add_effect<E: Effect>(&mut self, effect: &E) -> Result<()> {
         pd_func_caller!(
             (*self.raw_subsystem).addEffect,
             self.raw_channel,
-            effect.get_sound_effect().effect()
+            effect.get_sound_effect()
         )
     }
 
@@ -31,7 +35,7 @@ impl SoundChannel {
         pd_func_caller!(
             (*self.raw_subsystem).addSource,
             self.raw_channel,
-            source.get_sound_source().source()
+            source.get_sound_source()
         )
     }
 }

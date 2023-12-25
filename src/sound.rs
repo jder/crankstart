@@ -180,26 +180,8 @@ impl Sound {
     }
 }
 
-pub trait SoundSource {
-    fn get_sound_source(&self) -> UnsafeSoundSource;
-}
-
-pub struct UnsafeSoundSource<'a> {
-    source: *mut crankstart_sys::SoundSource,
-    _marker: PhantomData<&'a ()>,
-}
-
-impl<'a> UnsafeSoundSource<'a> {
-    /// # Safety
-    /// `effect` must be a valid pointer to a `SoundSource` struct for 'a.
-    pub unsafe fn new(source: *mut crankstart_sys::SoundSource) -> Self {
-        Self {
-            source,
-            _marker: PhantomData,
-        }
-    }
-
-    pub fn source(&self) -> *mut crankstart_sys::SoundSource {
-        self.source
-    }
+/// # Safety
+/// This trait must guarantee that the returned pointer is valid for the `self` lifetime.
+pub unsafe trait SoundSource {
+    fn get_sound_source(&self) -> *mut crankstart_sys::SoundSource;
 }
