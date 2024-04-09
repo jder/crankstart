@@ -1,3 +1,5 @@
+use core::ptr::null_mut;
+
 use {
     crate::{
         geometry::{ScreenPoint, ScreenRect, ScreenSize, ScreenVector},
@@ -507,13 +509,18 @@ impl Graphics {
 
     /// Allows drawing directly into an image rather than the framebuffer, for example for
     /// drawing text into a sprite's image.
-    pub fn with_context<F, T>(&self, bitmap: &Bitmap, f: F) -> Result<T, Error>
+    /// With no bitmap, just pushes a context so you can modify Graphics and pop it later.
+    pub fn with_context<F, T>(&self, bitmap: Option<&Bitmap>, f: F) -> Result<T, Error>
     where
         F: FnOnce() -> Result<T, Error>,
     {
         // Any calls in this context are directly modifying the bitmap, so borrow mutably
         // for safety.
-        self.push_context(bitmap.inner.borrow_mut().raw_bitmap)?;
+        self.push_context(
+            bitmap
+                .map(|b| b.inner.borrow_mut().raw_bitmap)
+                .unwrap_or(null_mut()),
+        )?;
         let res = f();
         self.pop_context()?;
         res
