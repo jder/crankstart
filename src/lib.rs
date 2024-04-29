@@ -125,6 +125,10 @@ pub trait Game {
     fn draw_and_update_sprites(&self) -> bool {
         true
     }
+
+    fn pause(&mut self, playdate: &mut Playdate) -> Result<(), Error> {
+        Ok(())
+    }
 }
 
 pub type GamePtr<T> = Box<T>;
@@ -166,6 +170,16 @@ impl<T: 'static + Game> GameRunner<T> {
         } else {
             log_to_console!("can't get game to update");
             self.init_failed = true;
+        }
+    }
+
+    pub fn pause(&mut self) {
+        if let Some(game) = self.game.as_mut() {
+            if let Err(err) = game.pause(&mut self.playdate) {
+                log_to_console!("Error in pause: {err:#}")
+            }
+        } else {
+            log_to_console!("can't get game to pause");
         }
     }
 
@@ -273,6 +287,9 @@ macro_rules! crankstart_game {
                     unsafe {
                         GAME_RUNNER = Some(GameRunner::new(game, playdate));
                     }
+                } else if event == PDSystemEvent::kEventPause {
+                    let game_runner = unsafe { GAME_RUNNER.as_mut().expect("GAME_RUNNER") };
+                    game_runner.pause();
                 }
                 0
             }

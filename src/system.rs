@@ -6,9 +6,11 @@ use core::cell::RefCell;
 
 use anyhow::anyhow;
 
+use crate::graphics::Bitmap;
 use crankstart_sys::ctypes::{c_char, c_int};
 pub use crankstart_sys::PDButtons;
 use crankstart_sys::{PDDateTime, PDLanguage, PDMenuItem, PDPeripherals};
+
 use {
     crate::pd_func_caller, anyhow::Error, core::ptr, crankstart_sys::ctypes::c_void,
     cstr_core::CString,
@@ -339,6 +341,14 @@ impl System {
 
     pub fn get_language(&self) -> Result<PDLanguage, Error> {
         pd_func_caller!((*self.0).getLanguage)
+    }
+
+    pub fn set_menu_image(&self, bitmap: Bitmap, x_offset: i32) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.0).setMenuImage,
+            bitmap.inner.borrow().raw_bitmap,
+            x_offset
+        )
     }
 }
 
