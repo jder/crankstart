@@ -126,7 +126,7 @@ pub trait Game {
         true
     }
 
-    fn pause(&mut self, playdate: &mut Playdate) -> Result<(), Error> {
+    fn pause(&mut self) -> Result<(), Error> {
         Ok(())
     }
 }
@@ -175,7 +175,7 @@ impl<T: 'static + Game> GameRunner<T> {
 
     pub fn pause(&mut self) {
         if let Some(game) = self.game.as_mut() {
-            if let Err(err) = game.pause(&mut self.playdate) {
+            if let Err(err) = game.pause() {
                 log_to_console!("Error in pause: {err:#}")
             }
         } else {
