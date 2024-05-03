@@ -131,6 +131,8 @@ pub trait Game {
     fn handle_event(&mut self, event: PDSystemEvent) -> Result<(), Error> {
         Ok(())
     }
+
+    fn cleanup(&mut self) {}
 }
 
 pub type GamePtr<T> = Box<T>;
@@ -185,6 +187,12 @@ impl<T: 'static + Game> GameRunner<T> {
         }
     }
 
+    pub fn cleanup(&mut self) {
+        if let Some(game) = self.game.as_mut() {
+            game.cleanup();
+        }
+    }
+
     pub fn update_sprite(&mut self, sprite: *mut LCDSprite) {
         if let Some(game) = self.game.as_mut() {
             if let Some(mut sprite) = SpriteManager::get_mut().get_sprite(sprite) {
@@ -231,7 +239,7 @@ macro_rules! crankstart_game {
                 alloc::{boxed::Box, format},
                 crankstart::{
                     graphics::PDRect, log_to_console, sprite::SpriteManager, system::System,
-                    GameRunner, Playdate,
+                    GameRunner, Playdate, CLEANUP_FUNCTION,
                 },
                 crankstart_sys::{
                     LCDRect, LCDSprite, PDSystemEvent, PlaydateAPI, SpriteCollisionResponseType,
@@ -256,6 +264,14 @@ macro_rules! crankstart_game {
                 game_runner.update();
 
                 1
+            }
+
+            fn cleanup() {
+                unsafe {
+                    GAME_RUNNER
+                        .as_mut()
+                        .map(|game_runner| game_runner.cleanup())
+                };
             }
 
             #[no_mangle]
@@ -288,6 +304,9 @@ macro_rules! crankstart_game {
 
                     unsafe {
                         GAME_RUNNER = Some(GameRunner::new(game, playdate));
+                        let cleanup_fn: fn() = cleanup;
+                        CLEANUP_FUNCTION
+                            .store(cleanup_fn as usize, core::sync::atomic::Ordering::SeqCst);
                     }
                 }
 
@@ -300,19 +319,18 @@ macro_rules! crankstart_game {
     };
 }
 
-fn abort_with_addr(addr: usize) -> ! {
-    let p = addr as *mut i32;
-    unsafe {
-        *p = 0;
-    }
-    core::intrinsics::abort()
-}
+static PANICKING: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+#[doc(hidden)]
+pub static CLEANUP_FUNCTION: core::sync::atomic::AtomicUsize =
+    core::sync::atomic::AtomicUsize::new(0);
 
 #[panic_handler]
-fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
+fn panic(#[allow(unused)] panic_info: &::core::panic::PanicInfo) -> ! {
     use alloc::string::ToString;
     use arrayvec::ArrayString;
     use core::fmt::Write;
+
+    // Try some cleanup
 
     if let Some(location) = panic_info.location() {
         let mut output = ArrayString::<1024>::new();
@@ -336,6 +354,16 @@ fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
     } else {
         System::log_to_console("panic\n");
     }
+
+    if !PANICKING.load(core::sync::atomic::Ordering::SeqCst) {
+        PANICKING.store(true, core::sync::atomic::Ordering::SeqCst);
+
+        let address: usize = CLEANUP_FUNCTION.load(core::sync::atomic::Ordering::SeqCst);
+        if address != 0 {
+            let cleanup: fn() = unsafe { core::mem::transmute(address) };
+            cleanup();
+        }
+    }
     #[cfg(target_os = "macos")]
     {
         unsafe {
@@ -349,7 +377,18 @@ fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
     }
 }
 
-use core::alloc::{GlobalAlloc, Layout};
+fn abort_with_addr(addr: usize) -> ! {
+    let p = addr as *mut i32;
+    unsafe {
+        *p = 0;
+    }
+    core::intrinsics::abort()
+}
+
+use core::{
+    alloc::{GlobalAlloc, Layout},
+    mem::transmute,
+};
 
 pub(crate) struct PlaydateAllocator;
 
