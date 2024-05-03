@@ -14,6 +14,8 @@ pub mod sound;
 pub mod sprite;
 pub mod system;
 
+use crankstart_sys::PDSystemEvent;
+
 use {
     crate::{
         display::Display,
@@ -126,7 +128,7 @@ pub trait Game {
         true
     }
 
-    fn pause(&mut self) -> Result<(), Error> {
+    fn handle_event(&mut self, event: PDSystemEvent) -> Result<(), Error> {
         Ok(())
     }
 }
@@ -173,13 +175,13 @@ impl<T: 'static + Game> GameRunner<T> {
         }
     }
 
-    pub fn pause(&mut self) {
+    pub fn handle_event(&mut self, event: PDSystemEvent) {
         if let Some(game) = self.game.as_mut() {
-            if let Err(err) = game.pause() {
-                log_to_console!("Error in pause: {err:#}")
+            if let Err(err) = game.handle_event(event) {
+                log_to_console!("Error in handle_event: {err:#}")
             }
         } else {
-            log_to_console!("can't get game to pause");
+            log_to_console!("can't get game to handle_event");
         }
     }
 
@@ -287,10 +289,11 @@ macro_rules! crankstart_game {
                     unsafe {
                         GAME_RUNNER = Some(GameRunner::new(game, playdate));
                     }
-                } else if event == PDSystemEvent::kEventPause {
-                    let game_runner = unsafe { GAME_RUNNER.as_mut().expect("GAME_RUNNER") };
-                    game_runner.pause();
                 }
+
+                let game_runner = unsafe { GAME_RUNNER.as_mut().expect("GAME_RUNNER") };
+                game_runner.handle_event(event);
+
                 0
             }
         }
