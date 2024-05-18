@@ -57,6 +57,7 @@ pub struct Sound {
     raw_sample_player: *const crankstart_sys::playdate_sound_sampleplayer,
     raw_synth: *const crankstart_sys::playdate_sound_synth,
     raw_lfo: *const crankstart_sys::playdate_sound_lfo,
+    raw_sound_effect: *const crankstart_sys::playdate_sound_effect,
     raw_overdrive: *const crankstart_sys::playdate_sound_effect_overdrive,
     raw_one_pole_filter: *const crankstart_sys::playdate_sound_effect_onepolefilter,
     raw_delay_line: *const crankstart_sys::playdate_sound_effect_delayline,
@@ -74,6 +75,7 @@ impl Sound {
             raw_sample_player: ptr::null(),
             raw_synth: ptr::null(),
             raw_lfo: ptr::null(),
+            raw_sound_effect: ptr::null(),
             raw_overdrive: ptr::null(),
             raw_one_pole_filter: ptr::null(),
             raw_delay_line: ptr::null(),
@@ -97,6 +99,8 @@ impl Sound {
         ensure!(!raw_synth.is_null(), "Null sound.synth");
         let raw_lfo = unsafe { (*raw_sound).lfo };
         ensure!(!raw_lfo.is_null(), "Null sound.lfo");
+        let raw_sound_effect = unsafe { (*raw_sound).effect };
+        ensure!(!raw_sound_effect.is_null(), "Null sound.effect");
         let raw_overdrive = unsafe { (*(*raw_sound).effect).overdrive };
         ensure!(!raw_overdrive.is_null(), "Null sound.effect_overdrive");
         let raw_one_pole_filter = unsafe { (*(*raw_sound).effect).onepolefilter };
@@ -116,6 +120,7 @@ impl Sound {
             raw_sample_player,
             raw_synth,
             raw_lfo,
+            raw_sound_effect,
             raw_overdrive,
             raw_one_pole_filter,
             raw_delay_line,
@@ -187,15 +192,20 @@ impl Sound {
     }
 
     pub fn new_overdrive(&self) -> Result<Overdrive> {
-        crate::sound::Overdrive::new(self.raw_overdrive)
+        crate::sound::Overdrive::new(self.raw_sound_effect, self.raw_overdrive)
     }
 
     pub fn new_one_pole_filter(&self) -> Result<effect::OnePoleFilter> {
-        crate::sound::effect::OnePoleFilter::new(self.raw_one_pole_filter)
+        crate::sound::effect::OnePoleFilter::new(self.raw_sound_effect, self.raw_one_pole_filter)
     }
 
     pub fn new_delay_line(&self, length_seconds: f32, stereo: bool) -> Result<effect::DelayLine> {
-        crate::sound::effect::DelayLine::new(self.raw_delay_line, length_seconds, stereo)
+        crate::sound::effect::DelayLine::new(
+            self.raw_sound_effect,
+            self.raw_delay_line,
+            length_seconds,
+            stereo,
+        )
     }
 
     pub fn new_channel(&self) -> Result<SoundChannel> {
