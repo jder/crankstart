@@ -132,7 +132,7 @@ pub trait Game {
         Ok(())
     }
 
-    fn cleanup(&mut self) {}
+    fn cleanup(&mut self, message: &str) {}
 }
 
 pub type GamePtr<T> = Box<T>;
@@ -187,9 +187,9 @@ impl<T: 'static + Game> GameRunner<T> {
         }
     }
 
-    pub fn cleanup(&mut self) {
+    pub fn cleanup(&mut self, message: &str) {
         if let Some(game) = self.game.as_mut() {
-            game.cleanup();
+            game.cleanup(message);
         }
     }
 
@@ -239,7 +239,7 @@ macro_rules! crankstart_game {
                 alloc::{boxed::Box, format},
                 crankstart::{
                     graphics::PDRect, log_to_console, sprite::SpriteManager, system::System,
-                    GameRunner, Playdate, CLEANUP_FUNCTION,
+                    CleanupFunction, GameRunner, Playdate, CLEANUP_FUNCTION,
                 },
                 crankstart_sys::{
                     LCDRect, LCDSprite, PDSystemEvent, PlaydateAPI, SpriteCollisionResponseType,
@@ -266,11 +266,11 @@ macro_rules! crankstart_game {
                 1
             }
 
-            fn cleanup() {
+            fn cleanup(message: &str) {
                 unsafe {
                     GAME_RUNNER
                         .as_mut()
-                        .map(|game_runner| game_runner.cleanup())
+                        .map(|game_runner| game_runner.cleanup(message))
                 };
             }
 
@@ -304,7 +304,7 @@ macro_rules! crankstart_game {
 
                     unsafe {
                         GAME_RUNNER = Some(GameRunner::new(game, playdate));
-                        let cleanup_fn: fn() = cleanup;
+                        let cleanup_fn: CleanupFunction = cleanup;
                         CLEANUP_FUNCTION
                             .store(cleanup_fn as usize, core::sync::atomic::Ordering::SeqCst);
                     }
@@ -324,6 +324,8 @@ static PANICKING: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBoo
 pub static CLEANUP_FUNCTION: core::sync::atomic::AtomicUsize =
     core::sync::atomic::AtomicUsize::new(0);
 
+pub type CleanupFunction = fn(&str);
+
 #[panic_handler]
 fn panic(#[allow(unused)] panic_info: &::core::panic::PanicInfo) -> ! {
     use alloc::string::ToString;
@@ -332,7 +334,7 @@ fn panic(#[allow(unused)] panic_info: &::core::panic::PanicInfo) -> ! {
 
     // Try some cleanup
 
-    if let Some(location) = panic_info.location() {
+    let message = if let Some(location) = panic_info.location() {
         let mut output = ArrayString::<1024>::new();
         let payload = if let Some(payload) = panic_info.payload().downcast_ref::<&str>() {
             payload.to_string()
@@ -350,18 +352,19 @@ fn panic(#[allow(unused)] panic_info: &::core::panic::PanicInfo) -> ! {
             location.line()
         )
         .expect("write");
-        System::log_to_console(output.as_str());
+        output.to_string()
     } else {
-        System::log_to_console("panic\n");
-    }
+        "panic".to_string()
+    };
+    System::log_to_console(&message);
 
     if !PANICKING.load(core::sync::atomic::Ordering::SeqCst) {
         PANICKING.store(true, core::sync::atomic::Ordering::SeqCst);
 
         let address: usize = CLEANUP_FUNCTION.load(core::sync::atomic::Ordering::SeqCst);
         if address != 0 {
-            let cleanup: fn() = unsafe { core::mem::transmute(address) };
-            cleanup();
+            let cleanup: CleanupFunction = unsafe { core::mem::transmute(address) };
+            cleanup(&message);
         }
     }
     #[cfg(target_os = "macos")]
