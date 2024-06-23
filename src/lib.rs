@@ -15,6 +15,7 @@ pub mod sprite;
 pub mod system;
 
 use crankstart_sys::PDSystemEvent;
+use talc::{Span, Talc, Talck};
 
 use {
     crate::{
@@ -391,30 +392,33 @@ fn abort_with_addr(addr: usize) -> ! {
 use core::{
     alloc::{GlobalAlloc, Layout},
     mem::transmute,
+    sync::atomic::AtomicUsize,
 };
 
-pub(crate) struct PlaydateAllocator;
+// TODO: Tune, find Playdate internal allocation size
+const MIN_HEAP_SIZE: usize = 1024 * 1024;
+static LAST_SIZE: AtomicUsize = AtomicUsize::new(0);
 
-unsafe impl Sync for PlaydateAllocator {}
+struct PlaydateAllocator;
 
-unsafe impl GlobalAlloc for PlaydateAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+impl talc::OomHandler for PlaydateAllocator {
+    fn handle_oom(talc: &mut talc::Talc<Self>, layout: Layout) -> Result<(), ()> {
+        let last_size = LAST_SIZE.load(core::sync::atomic::Ordering::Relaxed);
+        let size = (layout.size() + size_of::<usize>())
+            .max(last_size + last_size / 2)
+            .max(MIN_HEAP_SIZE);
+        LAST_SIZE.store(size, core::sync::atomic::Ordering::Relaxed);
+
         let system = System::get();
-        system.realloc(core::ptr::null_mut(), layout.size()) as *mut u8
-    }
+        let prt = system.realloc(core::ptr::null_mut(), size) as *mut u8;
 
-    unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
-        let system = System::get();
-        system.realloc(ptr as *mut core::ffi::c_void, 0);
-    }
-
-    unsafe fn realloc(&self, ptr: *mut u8, _layout: Layout, new_size: usize) -> *mut u8 {
-        System::get().realloc(ptr as *mut core::ffi::c_void, new_size) as *mut u8
+        unsafe { talc.claim(Span::new(prt, prt.add(size))) }.map(|_| ())
     }
 }
 
 #[global_allocator]
-pub(crate) static mut A: PlaydateAllocator = PlaydateAllocator;
+pub(crate) static mut A: Talck<talc::locking::AssumeUnlockable, PlaydateAllocator> =
+    Talck::new(Talc::new(PlaydateAllocator));
 
 // define what happens in an Out Of Memory (OOM) condition
 #[alloc_error_handler]
