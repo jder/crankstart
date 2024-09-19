@@ -1,6 +1,6 @@
 #![no_std]
 #![allow(internal_features)]
-#![feature(lang_items, alloc_error_handler, core_intrinsics, panic_info_message)]
+#![feature(lang_items, alloc_error_handler, core_intrinsics)]
 #![allow(unused_variables, dead_code, unused_imports)]
 
 extern crate alloc;
@@ -337,18 +337,11 @@ fn panic(#[allow(unused)] panic_info: &::core::panic::PanicInfo) -> ! {
 
     let message = if let Some(location) = panic_info.location() {
         let mut output = ArrayString::<1024>::new();
-        let payload = if let Some(payload) = panic_info.payload().downcast_ref::<&str>() {
-            payload.to_string()
-        } else {
-            panic_info
-                .message()
-                .map(|message| message.to_string())
-                .unwrap_or("no message".to_string())
-        };
+        let message = panic_info.message();
         write!(
             output,
             "panic: {} @ {}:{}\n",
-            payload,
+            message,
             location.file(),
             location.line()
         )
