@@ -335,22 +335,24 @@ fn panic(#[allow(unused)] panic_info: &::core::panic::PanicInfo) -> ! {
 
     // Try some cleanup
 
-    let message = if let Some(location) = panic_info.location() {
+    let message = {
         let mut output = ArrayString::<1024>::new();
         let message = panic_info.message();
-        write!(
-            output,
-            "panic: {} @ {}:{}\n",
-            message,
-            location.file(),
-            location.line()
-        )
-        .expect("write");
+        write!(output, "panic: {}", message,).expect("write");
+
+        if let Some(location) = panic_info.location() {
+            write!(
+                output,
+                " @ {}:{}:{}",
+                location.file(),
+                location.line(),
+                location.column()
+            )
+            .expect("write");
+        }
+
         output.to_string()
-    } else {
-        "panic".to_string()
     };
-    System::log_to_console(&message);
 
     if !PANICKING.load(core::sync::atomic::Ordering::SeqCst) {
         PANICKING.store(true, core::sync::atomic::Ordering::SeqCst);
@@ -361,6 +363,9 @@ fn panic(#[allow(unused)] panic_info: &::core::panic::PanicInfo) -> ! {
             cleanup(&message);
         }
     }
+
+    System::error(&message);
+
     #[cfg(target_os = "macos")]
     {
         unsafe {
