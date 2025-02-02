@@ -39,6 +39,17 @@ impl SoundChannel {
         result
     }
 
+    pub fn remove_effect<E: Effect>(&mut self, effect: E) -> Result<()> {
+        let result = pd_func_caller!(
+            (*self.raw_subsystem).removeEffect,
+            self.raw_channel,
+            effect.get_sound_effect()
+        );
+        self.effects
+            .retain(|e| e.get_sound_effect() != effect.get_sound_effect());
+        result
+    }
+
     pub fn add_source<S: SoundSource>(&mut self, source: S) -> Result<i32> {
         let result = pd_func_caller!(
             (*self.raw_subsystem).addSource,
@@ -48,10 +59,41 @@ impl SoundChannel {
         self.sources.push(Box::new(source));
         result
     }
+
+    pub fn remove_source<S: SoundSource>(&mut self, source: S) -> Result<bool> {
+        let result = pd_func_caller!(
+            (*self.raw_subsystem).removeSource,
+            self.raw_channel,
+            source.get_sound_source()
+        );
+        self.sources
+            .retain(|s| s.get_sound_source() != source.get_sound_source());
+        result.map(|r| r != 0)
+    }
 }
 
 impl Drop for SoundChannel {
     fn drop(&mut self) {
+        // Sources and effects must be removed before they are freed, otherwise you get
+        // crashes in the audio thread. We could alternatively keep the sound channel alive
+        // until all sources/effects are dropped but this also keeps the audio playing which is probably
+        // undesirable if someone has dropped the channel.
+        for source in &self.sources {
+            pd_func_caller_log!(
+                (*self.raw_subsystem).removeSource,
+                self.raw_channel,
+                source.get_sound_source()
+            );
+        }
+
+        for effect in &self.effects {
+            pd_func_caller_log!(
+                (*self.raw_subsystem).removeEffect,
+                self.raw_channel,
+                effect.get_sound_effect()
+            );
+        }
+
         pd_func_caller_log!((*self.raw_subsystem).freeChannel, self.raw_channel);
     }
 }

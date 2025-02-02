@@ -20,9 +20,11 @@ impl Synth {
     pub(crate) fn new(
         raw_subsystem: *const crankstart_sys::playdate_sound_synth,
     ) -> Result<Self, Error> {
+        let raw_synth = pd_func_caller!((*raw_subsystem).newSynth)?;
+        assert!(raw_synth != core::ptr::null_mut());
         Ok(Self(Rc::new(RefCell::new(SynthInner {
             raw_subsystem,
-            raw_synth: pd_func_caller!((*raw_subsystem).newSynth)?,
+            raw_synth,
             frequency_modulator: None,
         }))))
     }
