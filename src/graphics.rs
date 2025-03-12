@@ -376,7 +376,15 @@ impl Bitmap {
             (*Graphics::get_ptr()).getBitmapMask,
             self.inner.borrow().raw_bitmap,
         )?;
-        Ok(Bitmap::new(raw_bitmap, false)) // TODO: Is this owned?
+        Ok(Bitmap::new(raw_bitmap, true))
+    }
+
+    pub fn copy(&self) -> Result<Bitmap, Error> {
+        let raw_bitmap = pd_func_caller!(
+            (*Graphics::get_ptr()).copyBitmap,
+            self.inner.borrow().raw_bitmap
+        )?;
+        Ok(Bitmap::new(raw_bitmap, true))
     }
 }
 
