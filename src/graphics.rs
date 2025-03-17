@@ -19,6 +19,7 @@ pub use crankstart_sys::{
     LCDBitmapDrawMode, LCDBitmapFlip, LCDLineCapStyle, LCDPolygonFillRule, LCDRect, LCDSolidColor,
     PDRect, PDStringEncoding, LCD_COLUMNS, LCD_ROWS, LCD_ROWSIZE,
 };
+use crankstart_sys::{PDTextAlignment, PDTextWrappingMode};
 
 pub fn rect_make(x: f32, y: f32, width: f32, height: f32) -> PDRect {
     PDRect {
@@ -585,7 +586,7 @@ impl Graphics {
         pd_func_caller!((*self.0).setBackgroundColor, color)
     }
 
-    pub fn set_draw_mode(&self, mode: LCDBitmapDrawMode) -> Result<(), Error> {
+    pub fn set_draw_mode(&self, mode: LCDBitmapDrawMode) -> Result<LCDBitmapDrawMode, Error> {
         pd_func_caller!((*self.0).setDrawMode, mode)
     }
 
@@ -836,6 +837,28 @@ impl Graphics {
             PDStringEncoding::kUTF8Encoding,
             position.x,
             position.y,
+        )
+    }
+
+    pub fn draw_text_in_rect(
+        &self,
+        text: &str,
+        rect: ScreenRect,
+        wrapping_mode: PDTextWrappingMode,
+        alignment: PDTextAlignment,
+    ) -> Result<(), Error> {
+        let c_text = CString::new(text).map_err(Error::msg)?;
+        pd_func_caller!(
+            (*self.0).drawTextInRect,
+            c_text.as_ptr() as *const core::ffi::c_void,
+            text.len(),
+            PDStringEncoding::kUTF8Encoding,
+            rect.origin.x,
+            rect.origin.y,
+            rect.size.width,
+            rect.size.height,
+            wrapping_mode,
+            alignment
         )
     }
 
