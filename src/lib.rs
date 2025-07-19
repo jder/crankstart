@@ -126,7 +126,7 @@ pub trait Game {
     }
 
     fn draw_and_update_sprites(&self) -> bool {
-        true
+        false
     }
 
     fn handle_event(&mut self, event: PDSystemEvent) -> Result<(), Error> {
