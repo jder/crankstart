@@ -380,7 +380,7 @@ fn panic(#[allow(unused)] panic_info: &::core::panic::PanicInfo) -> ! {
 }
 
 fn abort_with_addr(addr: usize) -> ! {
-    let p = addr as *mut i32;
+    let p = addr as *mut u8; // u8 to avoid alignment issues
     unsafe {
         *p = 0;
     }
