@@ -421,6 +421,10 @@ struct BitmapTableInner {
 }
 
 impl BitmapTableInner {
+    /// Get a bitmap from this table.
+    /// Note: there is currently UB if you keep these bitmaps around
+    /// for longer than the table itself.
+    /// TODO: these bitmaps should keep the table alive.
     fn get_bitmap(&mut self, index: usize) -> Result<Bitmap, Error> {
         if let Some(bitmap) = self.bitmaps.get(&index) {
             Ok(bitmap.clone())
@@ -463,6 +467,8 @@ impl BitmapTableInner {
 
 impl Drop for BitmapTableInner {
     fn drop(&mut self) {
+        // Calling freeBitmapTable frees all the bitmaps in self.bitmaps, so we get rid of them first.
+        self.bitmaps.clear();
         pd_func_caller_log!(
             (*Graphics::get_ptr()).freeBitmapTable,
             self.raw_bitmap_table
