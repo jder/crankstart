@@ -18,12 +18,14 @@
 //! music.play(0)?;
 //! ```
 
+use crate::file::FileSystem;
 use crate::{pd_func_caller, pd_func_caller_log};
+use alloc::{format, vec};
 use core::marker::PhantomData;
-use crankstart_sys::ctypes;
 use crankstart_sys::LFOType;
+use crankstart_sys::{ctypes, SoundFormat};
 
-use anyhow::{anyhow, ensure, Error, Result};
+use anyhow::{anyhow, bail, ensure, Error, Result};
 use core::ptr;
 use cstr_core::CString;
 
@@ -158,14 +160,34 @@ impl Sound {
     /// Loads an `AudioSample` sound effect.  Assign it to a `SamplePlayer` with
     /// `SamplePlayer.set_sample`.
     pub fn load_audio_sample(&self, sample_path: &str) -> Result<AudioSample> {
-        let sample_path_c = CString::new(sample_path).map_err(Error::msg)?;
-        let arg_ptr = sample_path_c.as_ptr() as *const ctypes::c_char;
-        let raw_audio_sample = pd_func_caller!((*self.raw_sample).load, arg_ptr)?;
-        ensure!(
-            !raw_audio_sample.is_null(),
-            "Null returned from sample.load"
-        );
-        AudioSample::new(self.raw_sample, raw_audio_sample)
+        // We don't use load directly because it is much slower (40+ ms slower) than the following
+        let fs = FileSystem::get();
+        let sample_path = sample_path.trim_end_matches(".wav");
+        let sample_path = format!("{sample_path}.pda");
+        let file = fs.open(&sample_path, crankstart_sys::FileOptions::kFileRead)?;
+        file.seek(0, crate::file::Whence::End)?;
+        let length = file.tell()? as usize;
+        file.seek(0, crate::file::Whence::Set)?;
+        let mut data = vec![0u8; length];
+        let read_length = file.read(&mut data)?;
+        ensure!(read_length == length, "Didn't read whole audio file");
+        if let Some((sample_rate, format, offset)) = parse_pda_header(&data) {
+            let raw_audio_sample = pd_func_caller!(
+                (*self.raw_sample).newSampleFromData,
+                data[offset..].as_mut_ptr(),
+                format,
+                sample_rate,
+                (data.len() - offset) as i32,
+                1 // should free
+            )?;
+            ensure!(
+                !raw_audio_sample.is_null(),
+                "Null returned from sample.load"
+            );
+            AudioSample::new(self.raw_sample, raw_audio_sample, Some(data))
+        } else {
+            bail!("Failed to read audio header")
+        }
     }
 
     /// Returns the sound engine's current time, in frames, 44.1k per second.
@@ -211,6 +233,37 @@ impl Sound {
     pub fn new_channel(&self) -> Result<SoundChannel> {
         crate::sound::SoundChannel::new(self.raw_channel)
     }
+}
+
+// PDA format constants
+const PDA_HEADER_SIZE: usize = 16;
+const PDA_MAGIC: &[u8] = b"Playdate AUD";
+
+fn parse_pda_header(data: &[u8]) -> Option<(u32, SoundFormat, usize)> {
+    if data.len() < PDA_HEADER_SIZE {
+        return None;
+    }
+
+    // Check magic bytes
+    if &data[0..12] != PDA_MAGIC {
+        return None;
+    }
+
+    // Parse sample rate (24-bit little-endian at offset 12)
+    let sample_rate = u32::from_le_bytes([data[12], data[13], data[14], 0]);
+
+    // Parse format flag at offset 15
+    let format = match data[15] {
+        0 => SoundFormat::kSound8bitMono,
+        1 => SoundFormat::kSound8bitStereo,
+        2 => SoundFormat::kSound16bitMono,
+        3 => SoundFormat::kSound16bitStereo,
+        4 => SoundFormat::kSoundADPCMMono,
+        5 => SoundFormat::kSoundADPCMStereo,
+        _ => return None,
+    };
+
+    Some((sample_rate, format, PDA_HEADER_SIZE))
 }
 
 /// # Safety

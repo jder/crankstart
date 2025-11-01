@@ -1,7 +1,7 @@
 use crate::{log_to_console, pd_func_caller, pd_func_caller_log};
 use crankstart_sys::ctypes;
 
-use alloc::rc::Rc;
+use alloc::{rc::Rc, vec::Vec};
 use anyhow::{anyhow, ensure, Error, Result};
 
 use super::SoundSource;
@@ -180,6 +180,7 @@ pub struct AudioSample {
 struct AudioSampleInner {
     raw_subsystem: *const crankstart_sys::playdate_sound_sample,
     raw_audio_sample: *mut crankstart_sys::AudioSample,
+    side_data: Option<Vec<u8>>, // keeps data the AudioSample references alive until the sample is gone
 }
 
 impl Drop for AudioSampleInner {
@@ -195,6 +196,7 @@ impl AudioSample {
     pub(crate) fn new(
         raw_subsystem: *const crankstart_sys::playdate_sound_sample,
         raw_audio_sample: *mut crankstart_sys::AudioSample,
+        side_data: Option<Vec<u8>>,
     ) -> Result<Self, Error> {
         ensure!(
             !raw_subsystem.is_null(),
@@ -208,6 +210,7 @@ impl AudioSample {
             inner: Rc::new(AudioSampleInner {
                 raw_subsystem,
                 raw_audio_sample,
+                side_data,
             }),
         })
     }
