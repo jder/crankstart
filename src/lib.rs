@@ -14,7 +14,7 @@ pub mod sound;
 pub mod sprite;
 pub mod system;
 
-use crankstart_sys::PDSystemEvent;
+use crankstart_sys::{ctypes, PDSystemEvent};
 use talc::{Span, Talc, Talck};
 
 use {
@@ -133,6 +133,10 @@ pub trait Game {
         Ok(())
     }
 
+    fn serial_message_callback(&mut self, data: &CStr) -> Result<(), Error> {
+        Ok(())
+    }
+
     fn cleanup(&mut self, message: &str) {}
 }
 
@@ -185,6 +189,16 @@ impl<T: 'static + Game> GameRunner<T> {
             }
         } else {
             log_to_console!("can't get game to handle_event");
+        }
+    }
+
+    pub fn serial_message_callback(&mut self, data: *const ::crankstart_sys::ctypes::c_char) {
+        if let Some(game) = self.game.as_mut() {
+            if let Err(err) = game.serial_message_callback(unsafe {
+                core::ffi::CStr::from_ptr(data as *const core::ffi::c_char)
+            }) {
+                log_to_console!("Error in serial_message_callback: {err:#}")
+            }
         }
     }
 
@@ -267,6 +281,11 @@ macro_rules! crankstart_game {
                 1
             }
 
+            extern "C" fn serial_message_callback(data: *const ::crankstart_sys::ctypes::c_char) {
+                let game_runner = unsafe { GAME_RUNNER.as_mut().expect("GAME_RUNNER") };
+                game_runner.serial_message_callback(data)
+            }
+
             fn cleanup(message: &str) {
                 unsafe {
                     GAME_RUNNER
@@ -294,6 +313,13 @@ macro_rules! crankstart_game {
                         .set_update_callback(Some(update))
                         .unwrap_or_else(|err| {
                             log_to_console!("Got error while setting update callback: {err:#}");
+                        });
+                    System::get()
+                        .set_serial_message_callback(Some(serial_message_callback))
+                        .unwrap_or_else(|err| {
+                            log_to_console!(
+                                "Got error while setting serial message callback: {err:#}"
+                            );
                         });
                     let game = match $game_struct::new(&mut playdate) {
                         Ok(game) => Some(game),
@@ -389,6 +415,7 @@ fn abort_with_addr(addr: usize) -> ! {
 
 use core::{
     alloc::{GlobalAlloc, Layout},
+    ffi::CStr,
     mem::transmute,
     sync::atomic::AtomicUsize,
 };
