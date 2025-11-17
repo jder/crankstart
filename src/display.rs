@@ -47,6 +47,14 @@ impl Display {
         pd_func_caller!((*self.0).setRefreshRate, rate)
     }
 
+    pub fn get_refresh_rate(&self) -> Result<f32, Error> {
+        pd_func_caller!((*self.0).getRefreshRate)
+    }
+
+    pub fn get_fps(&self) -> Result<f32, Error> {
+        pd_func_caller!((*self.0).getFPS)
+    }
+
     pub fn set_flipped(&self, flipped: Vector2D<bool>) -> Result<(), Error> {
         pd_func_caller!((*self.0).setFlipped, flipped.x as i32, flipped.y as i32)
     }

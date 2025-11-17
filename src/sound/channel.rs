@@ -36,7 +36,12 @@ impl SoundChannel {
             effect.get_sound_effect()
         );
         self.effects.push(Box::new(effect));
-        result
+        match result {
+            Ok(0) => Err(anyhow::anyhow!("effect already in use")),
+            Ok(1) => Ok(()),
+            Ok(num) => panic!("invalid result from addEffect: {}", num),
+            Err(e) => Err(e),
+        }
     }
 
     pub fn remove_effect<E: Effect>(&mut self, effect: E) -> Result<()> {
@@ -47,7 +52,12 @@ impl SoundChannel {
         );
         self.effects
             .retain(|e| e.get_sound_effect() != effect.get_sound_effect());
-        result
+        match result {
+            Ok(0) => Err(anyhow::anyhow!("effect not found in channel")),
+            Ok(1) => Ok(()),
+            Ok(num) => panic!("invalid result from removeEffect: {}", num),
+            Err(e) => Err(e),
+        }
     }
 
     pub fn add_source<S: SoundSource>(&mut self, source: S) -> Result<i32> {

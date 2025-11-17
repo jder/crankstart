@@ -137,12 +137,169 @@ where
         }
     }
 }
-pub const LCD_COLUMNS: u32 = 400;
-pub const LCD_ROWS: u32 = 240;
-pub const LCD_ROWSIZE: u32 = 52;
 pub const SEEK_SET: u32 = 0;
 pub const SEEK_CUR: u32 = 1;
 pub const SEEK_END: u32 = 2;
+pub const LCD_COLUMNS: u32 = 400;
+pub const LCD_ROWS: u32 = 240;
+pub const LCD_ROWSIZE: u32 = 52;
+pub type SDFile = ctypes::c_void;
+impl FileOptions {
+    pub const kFileRead: FileOptions = FileOptions(1);
+}
+impl FileOptions {
+    pub const kFileReadData: FileOptions = FileOptions(2);
+}
+impl FileOptions {
+    pub const kFileWrite: FileOptions = FileOptions(4);
+}
+impl FileOptions {
+    pub const kFileAppend: FileOptions = FileOptions(8);
+}
+impl ::core::ops::BitOr<FileOptions> for FileOptions {
+    type Output = Self;
+    #[inline]
+    fn bitor(self, other: Self) -> Self {
+        FileOptions(self.0 | other.0)
+    }
+}
+impl ::core::ops::BitOrAssign for FileOptions {
+    #[inline]
+    fn bitor_assign(&mut self, rhs: FileOptions) {
+        self.0 |= rhs.0;
+    }
+}
+impl ::core::ops::BitAnd<FileOptions> for FileOptions {
+    type Output = Self;
+    #[inline]
+    fn bitand(self, other: Self) -> Self {
+        FileOptions(self.0 & other.0)
+    }
+}
+impl ::core::ops::BitAndAssign for FileOptions {
+    #[inline]
+    fn bitand_assign(&mut self, rhs: FileOptions) {
+        self.0 &= rhs.0;
+    }
+}
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct FileOptions(pub ctypes::c_uint);
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct FileStat {
+    pub isdir: ctypes::c_int,
+    pub size: ctypes::c_uint,
+    pub m_year: ctypes::c_int,
+    pub m_month: ctypes::c_int,
+    pub m_day: ctypes::c_int,
+    pub m_hour: ctypes::c_int,
+    pub m_minute: ctypes::c_int,
+    pub m_second: ctypes::c_int,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of FileStat"][::core::mem::size_of::<FileStat>() - 32usize];
+    ["Alignment of FileStat"][::core::mem::align_of::<FileStat>() - 4usize];
+    ["Offset of field: FileStat::isdir"][::core::mem::offset_of!(FileStat, isdir) - 0usize];
+    ["Offset of field: FileStat::size"][::core::mem::offset_of!(FileStat, size) - 4usize];
+    ["Offset of field: FileStat::m_year"][::core::mem::offset_of!(FileStat, m_year) - 8usize];
+    ["Offset of field: FileStat::m_month"][::core::mem::offset_of!(FileStat, m_month) - 12usize];
+    ["Offset of field: FileStat::m_day"][::core::mem::offset_of!(FileStat, m_day) - 16usize];
+    ["Offset of field: FileStat::m_hour"][::core::mem::offset_of!(FileStat, m_hour) - 20usize];
+    ["Offset of field: FileStat::m_minute"][::core::mem::offset_of!(FileStat, m_minute) - 24usize];
+    ["Offset of field: FileStat::m_second"][::core::mem::offset_of!(FileStat, m_second) - 28usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct playdate_file {
+    pub geterr: ::core::option::Option<unsafe extern "C" fn() -> *const ctypes::c_char>,
+    pub listfiles: ::core::option::Option<
+        unsafe extern "C" fn(
+            path: *const ctypes::c_char,
+            callback: ::core::option::Option<
+                unsafe extern "C" fn(path: *const ctypes::c_char, userdata: *mut ctypes::c_void),
+            >,
+            userdata: *mut ctypes::c_void,
+            showhidden: ctypes::c_int,
+        ) -> ctypes::c_int,
+    >,
+    pub stat: ::core::option::Option<
+        unsafe extern "C" fn(path: *const ctypes::c_char, stat: *mut FileStat) -> ctypes::c_int,
+    >,
+    pub mkdir:
+        ::core::option::Option<unsafe extern "C" fn(path: *const ctypes::c_char) -> ctypes::c_int>,
+    pub unlink: ::core::option::Option<
+        unsafe extern "C" fn(
+            name: *const ctypes::c_char,
+            recursive: ctypes::c_int,
+        ) -> ctypes::c_int,
+    >,
+    pub rename: ::core::option::Option<
+        unsafe extern "C" fn(
+            from: *const ctypes::c_char,
+            to: *const ctypes::c_char,
+        ) -> ctypes::c_int,
+    >,
+    pub open: ::core::option::Option<
+        unsafe extern "C" fn(name: *const ctypes::c_char, mode: FileOptions) -> *mut SDFile,
+    >,
+    pub close: ::core::option::Option<unsafe extern "C" fn(file: *mut SDFile) -> ctypes::c_int>,
+    pub read: ::core::option::Option<
+        unsafe extern "C" fn(
+            file: *mut SDFile,
+            buf: *mut ctypes::c_void,
+            len: ctypes::c_uint,
+        ) -> ctypes::c_int,
+    >,
+    pub write: ::core::option::Option<
+        unsafe extern "C" fn(
+            file: *mut SDFile,
+            buf: *const ctypes::c_void,
+            len: ctypes::c_uint,
+        ) -> ctypes::c_int,
+    >,
+    pub flush: ::core::option::Option<unsafe extern "C" fn(file: *mut SDFile) -> ctypes::c_int>,
+    pub tell: ::core::option::Option<unsafe extern "C" fn(file: *mut SDFile) -> ctypes::c_int>,
+    pub seek: ::core::option::Option<
+        unsafe extern "C" fn(
+            file: *mut SDFile,
+            pos: ctypes::c_int,
+            whence: ctypes::c_int,
+        ) -> ctypes::c_int,
+    >,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of playdate_file"][::core::mem::size_of::<playdate_file>() - 104usize];
+    ["Alignment of playdate_file"][::core::mem::align_of::<playdate_file>() - 8usize];
+    ["Offset of field: playdate_file::geterr"]
+        [::core::mem::offset_of!(playdate_file, geterr) - 0usize];
+    ["Offset of field: playdate_file::listfiles"]
+        [::core::mem::offset_of!(playdate_file, listfiles) - 8usize];
+    ["Offset of field: playdate_file::stat"]
+        [::core::mem::offset_of!(playdate_file, stat) - 16usize];
+    ["Offset of field: playdate_file::mkdir"]
+        [::core::mem::offset_of!(playdate_file, mkdir) - 24usize];
+    ["Offset of field: playdate_file::unlink"]
+        [::core::mem::offset_of!(playdate_file, unlink) - 32usize];
+    ["Offset of field: playdate_file::rename"]
+        [::core::mem::offset_of!(playdate_file, rename) - 40usize];
+    ["Offset of field: playdate_file::open"]
+        [::core::mem::offset_of!(playdate_file, open) - 48usize];
+    ["Offset of field: playdate_file::close"]
+        [::core::mem::offset_of!(playdate_file, close) - 56usize];
+    ["Offset of field: playdate_file::read"]
+        [::core::mem::offset_of!(playdate_file, read) - 64usize];
+    ["Offset of field: playdate_file::write"]
+        [::core::mem::offset_of!(playdate_file, write) - 72usize];
+    ["Offset of field: playdate_file::flush"]
+        [::core::mem::offset_of!(playdate_file, flush) - 80usize];
+    ["Offset of field: playdate_file::tell"]
+        [::core::mem::offset_of!(playdate_file, tell) - 88usize];
+    ["Offset of field: playdate_file::seek"]
+        [::core::mem::offset_of!(playdate_file, seek) - 96usize];
+};
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct LCDRect {
@@ -256,7 +413,32 @@ pub struct LCDFontGlyph {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct LCDTileMap {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct LCDVideoPlayer {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct LCDStreamPlayer {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct HTTPConnection {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct TCPConnection {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FilePlayer {
     _unused: [u8; 0],
 }
 #[repr(C)]
@@ -309,6 +491,134 @@ const _: () = {
         [::core::mem::offset_of!(playdate_video, getInfo) - 48usize];
     ["Offset of field: playdate_video::getContext"]
         [::core::mem::offset_of!(playdate_video, getContext) - 56usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct playdate_videostream {
+    pub newPlayer: ::core::option::Option<unsafe extern "C" fn() -> *mut LCDStreamPlayer>,
+    pub freePlayer: ::core::option::Option<unsafe extern "C" fn(p: *mut LCDStreamPlayer)>,
+    pub setBufferSize: ::core::option::Option<
+        unsafe extern "C" fn(p: *mut LCDStreamPlayer, video: ctypes::c_int, audio: ctypes::c_int),
+    >,
+    pub setFile:
+        ::core::option::Option<unsafe extern "C" fn(p: *mut LCDStreamPlayer, file: *mut SDFile)>,
+    pub setHTTPConnection: ::core::option::Option<
+        unsafe extern "C" fn(p: *mut LCDStreamPlayer, conn: *mut HTTPConnection),
+    >,
+    pub getFilePlayer:
+        ::core::option::Option<unsafe extern "C" fn(p: *mut LCDStreamPlayer) -> *mut FilePlayer>,
+    pub getVideoPlayer: ::core::option::Option<
+        unsafe extern "C" fn(p: *mut LCDStreamPlayer) -> *mut LCDVideoPlayer,
+    >,
+    pub update: ::core::option::Option<unsafe extern "C" fn(p: *mut LCDStreamPlayer) -> bool>,
+    pub getBufferedFrameCount:
+        ::core::option::Option<unsafe extern "C" fn(p: *mut LCDStreamPlayer) -> ctypes::c_int>,
+    pub getBytesRead: ::core::option::Option<unsafe extern "C" fn(p: *mut LCDStreamPlayer) -> u32>,
+    pub setTCPConnection: ::core::option::Option<
+        unsafe extern "C" fn(p: *mut LCDStreamPlayer, conn: *mut TCPConnection),
+    >,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of playdate_videostream"][::core::mem::size_of::<playdate_videostream>() - 88usize];
+    ["Alignment of playdate_videostream"][::core::mem::align_of::<playdate_videostream>() - 8usize];
+    ["Offset of field: playdate_videostream::newPlayer"]
+        [::core::mem::offset_of!(playdate_videostream, newPlayer) - 0usize];
+    ["Offset of field: playdate_videostream::freePlayer"]
+        [::core::mem::offset_of!(playdate_videostream, freePlayer) - 8usize];
+    ["Offset of field: playdate_videostream::setBufferSize"]
+        [::core::mem::offset_of!(playdate_videostream, setBufferSize) - 16usize];
+    ["Offset of field: playdate_videostream::setFile"]
+        [::core::mem::offset_of!(playdate_videostream, setFile) - 24usize];
+    ["Offset of field: playdate_videostream::setHTTPConnection"]
+        [::core::mem::offset_of!(playdate_videostream, setHTTPConnection) - 32usize];
+    ["Offset of field: playdate_videostream::getFilePlayer"]
+        [::core::mem::offset_of!(playdate_videostream, getFilePlayer) - 40usize];
+    ["Offset of field: playdate_videostream::getVideoPlayer"]
+        [::core::mem::offset_of!(playdate_videostream, getVideoPlayer) - 48usize];
+    ["Offset of field: playdate_videostream::update"]
+        [::core::mem::offset_of!(playdate_videostream, update) - 56usize];
+    ["Offset of field: playdate_videostream::getBufferedFrameCount"]
+        [::core::mem::offset_of!(playdate_videostream, getBufferedFrameCount) - 64usize];
+    ["Offset of field: playdate_videostream::getBytesRead"]
+        [::core::mem::offset_of!(playdate_videostream, getBytesRead) - 72usize];
+    ["Offset of field: playdate_videostream::setTCPConnection"]
+        [::core::mem::offset_of!(playdate_videostream, setTCPConnection) - 80usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct playdate_tilemap {
+    pub newTilemap: ::core::option::Option<unsafe extern "C" fn() -> *mut LCDTileMap>,
+    pub freeTilemap: ::core::option::Option<unsafe extern "C" fn(m: *mut LCDTileMap)>,
+    pub setImageTable: ::core::option::Option<
+        unsafe extern "C" fn(m: *mut LCDTileMap, table: *mut LCDBitmapTable),
+    >,
+    pub getImageTable:
+        ::core::option::Option<unsafe extern "C" fn(m: *mut LCDTileMap) -> *mut LCDBitmapTable>,
+    pub setSize: ::core::option::Option<
+        unsafe extern "C" fn(
+            m: *mut LCDTileMap,
+            tilesWide: ctypes::c_int,
+            tilesHigh: ctypes::c_int,
+        ),
+    >,
+    pub getSize: ::core::option::Option<
+        unsafe extern "C" fn(
+            m: *mut LCDTileMap,
+            tilesWide: *mut ctypes::c_int,
+            tilesHigh: *mut ctypes::c_int,
+        ),
+    >,
+    pub getPixelSize: ::core::option::Option<
+        unsafe extern "C" fn(m: *mut LCDTileMap, outWidth: *mut u32, outHeight: *mut u32),
+    >,
+    pub setTiles: ::core::option::Option<
+        unsafe extern "C" fn(
+            m: *mut LCDTileMap,
+            indexes: *mut u16,
+            count: ctypes::c_int,
+            rowwidth: ctypes::c_int,
+        ),
+    >,
+    pub setTileAtPosition: ::core::option::Option<
+        unsafe extern "C" fn(m: *mut LCDTileMap, x: ctypes::c_int, y: ctypes::c_int, idx: u16),
+    >,
+    pub getTileAtPosition: ::core::option::Option<
+        unsafe extern "C" fn(
+            m: *mut LCDTileMap,
+            x: ctypes::c_int,
+            y: ctypes::c_int,
+        ) -> ctypes::c_int,
+    >,
+    pub drawAtPoint:
+        ::core::option::Option<unsafe extern "C" fn(m: *mut LCDTileMap, x: f32, y: f32)>,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of playdate_tilemap"][::core::mem::size_of::<playdate_tilemap>() - 88usize];
+    ["Alignment of playdate_tilemap"][::core::mem::align_of::<playdate_tilemap>() - 8usize];
+    ["Offset of field: playdate_tilemap::newTilemap"]
+        [::core::mem::offset_of!(playdate_tilemap, newTilemap) - 0usize];
+    ["Offset of field: playdate_tilemap::freeTilemap"]
+        [::core::mem::offset_of!(playdate_tilemap, freeTilemap) - 8usize];
+    ["Offset of field: playdate_tilemap::setImageTable"]
+        [::core::mem::offset_of!(playdate_tilemap, setImageTable) - 16usize];
+    ["Offset of field: playdate_tilemap::getImageTable"]
+        [::core::mem::offset_of!(playdate_tilemap, getImageTable) - 24usize];
+    ["Offset of field: playdate_tilemap::setSize"]
+        [::core::mem::offset_of!(playdate_tilemap, setSize) - 32usize];
+    ["Offset of field: playdate_tilemap::getSize"]
+        [::core::mem::offset_of!(playdate_tilemap, getSize) - 40usize];
+    ["Offset of field: playdate_tilemap::getPixelSize"]
+        [::core::mem::offset_of!(playdate_tilemap, getPixelSize) - 48usize];
+    ["Offset of field: playdate_tilemap::setTiles"]
+        [::core::mem::offset_of!(playdate_tilemap, setTiles) - 56usize];
+    ["Offset of field: playdate_tilemap::setTileAtPosition"]
+        [::core::mem::offset_of!(playdate_tilemap, setTileAtPosition) - 64usize];
+    ["Offset of field: playdate_tilemap::getTileAtPosition"]
+        [::core::mem::offset_of!(playdate_tilemap, getTileAtPosition) - 72usize];
+    ["Offset of field: playdate_tilemap::drawAtPoint"]
+        [::core::mem::offset_of!(playdate_tilemap, drawAtPoint) - 80usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -635,10 +945,45 @@ pub struct playdate_graphics {
             align: PDTextAlignment,
         ),
     >,
+    pub getTextHeightForMaxWidth: ::core::option::Option<
+        unsafe extern "C" fn(
+            font: *mut LCDFont,
+            text: *const ctypes::c_void,
+            len: usize,
+            maxwidth: ctypes::c_int,
+            encoding: PDStringEncoding,
+            wrap: PDTextWrappingMode,
+            tracking: ctypes::c_int,
+            extraLeading: ctypes::c_int,
+        ) -> ctypes::c_int,
+    >,
+    pub drawRoundRect: ::core::option::Option<
+        unsafe extern "C" fn(
+            x: ctypes::c_int,
+            y: ctypes::c_int,
+            width: ctypes::c_int,
+            height: ctypes::c_int,
+            radius: ctypes::c_int,
+            lineWidth: ctypes::c_int,
+            color: LCDColor,
+        ),
+    >,
+    pub fillRoundRect: ::core::option::Option<
+        unsafe extern "C" fn(
+            x: ctypes::c_int,
+            y: ctypes::c_int,
+            width: ctypes::c_int,
+            height: ctypes::c_int,
+            radius: ctypes::c_int,
+            color: LCDColor,
+        ),
+    >,
+    pub tilemap: *const playdate_tilemap,
+    pub videostream: *const playdate_videostream,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of playdate_graphics"][::core::mem::size_of::<playdate_graphics>() - 512usize];
+    ["Size of playdate_graphics"][::core::mem::size_of::<playdate_graphics>() - 552usize];
     ["Alignment of playdate_graphics"][::core::mem::align_of::<playdate_graphics>() - 8usize];
     ["Offset of field: playdate_graphics::video"]
         [::core::mem::offset_of!(playdate_graphics, video) - 0usize];
@@ -768,6 +1113,16 @@ const _: () = {
         [::core::mem::offset_of!(playdate_graphics, getBitmapTableInfo) - 496usize];
     ["Offset of field: playdate_graphics::drawTextInRect"]
         [::core::mem::offset_of!(playdate_graphics, drawTextInRect) - 504usize];
+    ["Offset of field: playdate_graphics::getTextHeightForMaxWidth"]
+        [::core::mem::offset_of!(playdate_graphics, getTextHeightForMaxWidth) - 512usize];
+    ["Offset of field: playdate_graphics::drawRoundRect"]
+        [::core::mem::offset_of!(playdate_graphics, drawRoundRect) - 520usize];
+    ["Offset of field: playdate_graphics::fillRoundRect"]
+        [::core::mem::offset_of!(playdate_graphics, fillRoundRect) - 528usize];
+    ["Offset of field: playdate_graphics::tilemap"]
+        [::core::mem::offset_of!(playdate_graphics, tilemap) - 536usize];
+    ["Offset of field: playdate_graphics::videostream"]
+        [::core::mem::offset_of!(playdate_graphics, videostream) - 544usize];
 };
 impl Default for playdate_graphics {
     fn default() -> Self {
@@ -833,6 +1188,15 @@ pub enum PDLanguage {
     kPDLanguageJapanese = 1,
     kPDLanguageUnknown = 2,
 }
+pub type AccessRequestCallback =
+    ::core::option::Option<unsafe extern "C" fn(allowed: bool, userdata: *mut ctypes::c_void)>;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum accessReply {
+    kAccessAsk = 0,
+    kAccessDeny = 1,
+    kAccessAllow = 2,
+}
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct PDDateTime {
@@ -880,6 +1244,28 @@ pub type PDButtonCallbackFunction = ::core::option::Option<
         userdata: *mut ctypes::c_void,
     ) -> ctypes::c_int,
 >;
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct PDInfo {
+    pub osversion: u32,
+    pub language: PDLanguage,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of PDInfo"][::core::mem::size_of::<PDInfo>() - 8usize];
+    ["Alignment of PDInfo"][::core::mem::align_of::<PDInfo>() - 4usize];
+    ["Offset of field: PDInfo::osversion"][::core::mem::offset_of!(PDInfo, osversion) - 0usize];
+    ["Offset of field: PDInfo::language"][::core::mem::offset_of!(PDInfo, language) - 4usize];
+};
+impl Default for PDInfo {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sys {
@@ -1007,10 +1393,27 @@ pub struct playdate_sys {
             ...
         ) -> ctypes::c_int,
     >,
+    pub delay: ::core::option::Option<unsafe extern "C" fn(milliseconds: u32)>,
+    pub getServerTime: ::core::option::Option<
+        unsafe extern "C" fn(
+            callback: ::core::option::Option<
+                unsafe extern "C" fn(time: *const ctypes::c_char, err: *const ctypes::c_char),
+            >,
+        ),
+    >,
+    pub restartGame:
+        ::core::option::Option<unsafe extern "C" fn(launchargs: *const ctypes::c_char)>,
+    pub getLaunchArgs: ::core::option::Option<
+        unsafe extern "C" fn(outpath: *mut *const ctypes::c_char) -> *const ctypes::c_char,
+    >,
+    pub sendMirrorData: ::core::option::Option<
+        unsafe extern "C" fn(command: u8, data: *mut ctypes::c_void, len: ctypes::c_int) -> bool,
+    >,
+    pub getSystemInfo: ::core::option::Option<unsafe extern "C" fn() -> *const PDInfo>,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of playdate_sys"][::core::mem::size_of::<playdate_sys>() - 352usize];
+    ["Size of playdate_sys"][::core::mem::size_of::<playdate_sys>() - 400usize];
     ["Alignment of playdate_sys"][::core::mem::align_of::<playdate_sys>() - 8usize];
     ["Offset of field: playdate_sys::realloc"]
         [::core::mem::offset_of!(playdate_sys, realloc) - 0usize];
@@ -1100,6 +1503,18 @@ const _: () = {
         [::core::mem::offset_of!(playdate_sys, vaFormatString) - 336usize];
     ["Offset of field: playdate_sys::parseString"]
         [::core::mem::offset_of!(playdate_sys, parseString) - 344usize];
+    ["Offset of field: playdate_sys::delay"]
+        [::core::mem::offset_of!(playdate_sys, delay) - 352usize];
+    ["Offset of field: playdate_sys::getServerTime"]
+        [::core::mem::offset_of!(playdate_sys, getServerTime) - 360usize];
+    ["Offset of field: playdate_sys::restartGame"]
+        [::core::mem::offset_of!(playdate_sys, restartGame) - 368usize];
+    ["Offset of field: playdate_sys::getLaunchArgs"]
+        [::core::mem::offset_of!(playdate_sys, getLaunchArgs) - 376usize];
+    ["Offset of field: playdate_sys::sendMirrorData"]
+        [::core::mem::offset_of!(playdate_sys, sendMirrorData) - 384usize];
+    ["Offset of field: playdate_sys::getSystemInfo"]
+        [::core::mem::offset_of!(playdate_sys, getSystemInfo) - 392usize];
 };
 pub type lua_State = *mut ctypes::c_void;
 pub type lua_CFunction =
@@ -1820,163 +2235,6 @@ const _: () = {
     ["Offset of field: playdate_json::decodeString"]
         [::core::mem::offset_of!(playdate_json, decodeString) - 16usize];
 };
-pub type SDFile = ctypes::c_void;
-impl FileOptions {
-    pub const kFileRead: FileOptions = FileOptions(1);
-}
-impl FileOptions {
-    pub const kFileReadData: FileOptions = FileOptions(2);
-}
-impl FileOptions {
-    pub const kFileWrite: FileOptions = FileOptions(4);
-}
-impl FileOptions {
-    pub const kFileAppend: FileOptions = FileOptions(8);
-}
-impl ::core::ops::BitOr<FileOptions> for FileOptions {
-    type Output = Self;
-    #[inline]
-    fn bitor(self, other: Self) -> Self {
-        FileOptions(self.0 | other.0)
-    }
-}
-impl ::core::ops::BitOrAssign for FileOptions {
-    #[inline]
-    fn bitor_assign(&mut self, rhs: FileOptions) {
-        self.0 |= rhs.0;
-    }
-}
-impl ::core::ops::BitAnd<FileOptions> for FileOptions {
-    type Output = Self;
-    #[inline]
-    fn bitand(self, other: Self) -> Self {
-        FileOptions(self.0 & other.0)
-    }
-}
-impl ::core::ops::BitAndAssign for FileOptions {
-    #[inline]
-    fn bitand_assign(&mut self, rhs: FileOptions) {
-        self.0 &= rhs.0;
-    }
-}
-#[repr(transparent)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct FileOptions(pub ctypes::c_uint);
-#[repr(C)]
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub struct FileStat {
-    pub isdir: ctypes::c_int,
-    pub size: ctypes::c_uint,
-    pub m_year: ctypes::c_int,
-    pub m_month: ctypes::c_int,
-    pub m_day: ctypes::c_int,
-    pub m_hour: ctypes::c_int,
-    pub m_minute: ctypes::c_int,
-    pub m_second: ctypes::c_int,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of FileStat"][::core::mem::size_of::<FileStat>() - 32usize];
-    ["Alignment of FileStat"][::core::mem::align_of::<FileStat>() - 4usize];
-    ["Offset of field: FileStat::isdir"][::core::mem::offset_of!(FileStat, isdir) - 0usize];
-    ["Offset of field: FileStat::size"][::core::mem::offset_of!(FileStat, size) - 4usize];
-    ["Offset of field: FileStat::m_year"][::core::mem::offset_of!(FileStat, m_year) - 8usize];
-    ["Offset of field: FileStat::m_month"][::core::mem::offset_of!(FileStat, m_month) - 12usize];
-    ["Offset of field: FileStat::m_day"][::core::mem::offset_of!(FileStat, m_day) - 16usize];
-    ["Offset of field: FileStat::m_hour"][::core::mem::offset_of!(FileStat, m_hour) - 20usize];
-    ["Offset of field: FileStat::m_minute"][::core::mem::offset_of!(FileStat, m_minute) - 24usize];
-    ["Offset of field: FileStat::m_second"][::core::mem::offset_of!(FileStat, m_second) - 28usize];
-};
-#[repr(C)]
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub struct playdate_file {
-    pub geterr: ::core::option::Option<unsafe extern "C" fn() -> *const ctypes::c_char>,
-    pub listfiles: ::core::option::Option<
-        unsafe extern "C" fn(
-            path: *const ctypes::c_char,
-            callback: ::core::option::Option<
-                unsafe extern "C" fn(path: *const ctypes::c_char, userdata: *mut ctypes::c_void),
-            >,
-            userdata: *mut ctypes::c_void,
-            showhidden: ctypes::c_int,
-        ) -> ctypes::c_int,
-    >,
-    pub stat: ::core::option::Option<
-        unsafe extern "C" fn(path: *const ctypes::c_char, stat: *mut FileStat) -> ctypes::c_int,
-    >,
-    pub mkdir:
-        ::core::option::Option<unsafe extern "C" fn(path: *const ctypes::c_char) -> ctypes::c_int>,
-    pub unlink: ::core::option::Option<
-        unsafe extern "C" fn(
-            name: *const ctypes::c_char,
-            recursive: ctypes::c_int,
-        ) -> ctypes::c_int,
-    >,
-    pub rename: ::core::option::Option<
-        unsafe extern "C" fn(
-            from: *const ctypes::c_char,
-            to: *const ctypes::c_char,
-        ) -> ctypes::c_int,
-    >,
-    pub open: ::core::option::Option<
-        unsafe extern "C" fn(name: *const ctypes::c_char, mode: FileOptions) -> *mut SDFile,
-    >,
-    pub close: ::core::option::Option<unsafe extern "C" fn(file: *mut SDFile) -> ctypes::c_int>,
-    pub read: ::core::option::Option<
-        unsafe extern "C" fn(
-            file: *mut SDFile,
-            buf: *mut ctypes::c_void,
-            len: ctypes::c_uint,
-        ) -> ctypes::c_int,
-    >,
-    pub write: ::core::option::Option<
-        unsafe extern "C" fn(
-            file: *mut SDFile,
-            buf: *const ctypes::c_void,
-            len: ctypes::c_uint,
-        ) -> ctypes::c_int,
-    >,
-    pub flush: ::core::option::Option<unsafe extern "C" fn(file: *mut SDFile) -> ctypes::c_int>,
-    pub tell: ::core::option::Option<unsafe extern "C" fn(file: *mut SDFile) -> ctypes::c_int>,
-    pub seek: ::core::option::Option<
-        unsafe extern "C" fn(
-            file: *mut SDFile,
-            pos: ctypes::c_int,
-            whence: ctypes::c_int,
-        ) -> ctypes::c_int,
-    >,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of playdate_file"][::core::mem::size_of::<playdate_file>() - 104usize];
-    ["Alignment of playdate_file"][::core::mem::align_of::<playdate_file>() - 8usize];
-    ["Offset of field: playdate_file::geterr"]
-        [::core::mem::offset_of!(playdate_file, geterr) - 0usize];
-    ["Offset of field: playdate_file::listfiles"]
-        [::core::mem::offset_of!(playdate_file, listfiles) - 8usize];
-    ["Offset of field: playdate_file::stat"]
-        [::core::mem::offset_of!(playdate_file, stat) - 16usize];
-    ["Offset of field: playdate_file::mkdir"]
-        [::core::mem::offset_of!(playdate_file, mkdir) - 24usize];
-    ["Offset of field: playdate_file::unlink"]
-        [::core::mem::offset_of!(playdate_file, unlink) - 32usize];
-    ["Offset of field: playdate_file::rename"]
-        [::core::mem::offset_of!(playdate_file, rename) - 40usize];
-    ["Offset of field: playdate_file::open"]
-        [::core::mem::offset_of!(playdate_file, open) - 48usize];
-    ["Offset of field: playdate_file::close"]
-        [::core::mem::offset_of!(playdate_file, close) - 56usize];
-    ["Offset of field: playdate_file::read"]
-        [::core::mem::offset_of!(playdate_file, read) - 64usize];
-    ["Offset of field: playdate_file::write"]
-        [::core::mem::offset_of!(playdate_file, write) - 72usize];
-    ["Offset of field: playdate_file::flush"]
-        [::core::mem::offset_of!(playdate_file, flush) - 80usize];
-    ["Offset of field: playdate_file::tell"]
-        [::core::mem::offset_of!(playdate_file, tell) - 88usize];
-    ["Offset of field: playdate_file::seek"]
-        [::core::mem::offset_of!(playdate_file, seek) - 96usize];
-};
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum SpriteCollisionResponseType {
@@ -2283,10 +2541,14 @@ pub struct playdate_sprite {
     pub setCenter: ::core::option::Option<unsafe extern "C" fn(s: *mut LCDSprite, x: f32, y: f32)>,
     pub getCenter:
         ::core::option::Option<unsafe extern "C" fn(s: *mut LCDSprite, x: *mut f32, y: *mut f32)>,
+    pub setTilemap:
+        ::core::option::Option<unsafe extern "C" fn(s: *mut LCDSprite, tilemap: *mut LCDTileMap)>,
+    pub getTilemap:
+        ::core::option::Option<unsafe extern "C" fn(s: *mut LCDSprite) -> *mut LCDTileMap>,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of playdate_sprite"][::core::mem::size_of::<playdate_sprite>() - 504usize];
+    ["Size of playdate_sprite"][::core::mem::size_of::<playdate_sprite>() - 520usize];
     ["Alignment of playdate_sprite"][::core::mem::align_of::<playdate_sprite>() - 8usize];
     ["Offset of field: playdate_sprite::setAlwaysRedraw"]
         [::core::mem::offset_of!(playdate_sprite, setAlwaysRedraw) - 0usize];
@@ -2414,6 +2676,10 @@ const _: () = {
         [::core::mem::offset_of!(playdate_sprite, setCenter) - 488usize];
     ["Offset of field: playdate_sprite::getCenter"]
         [::core::mem::offset_of!(playdate_sprite, getCenter) - 496usize];
+    ["Offset of field: playdate_sprite::setTilemap"]
+        [::core::mem::offset_of!(playdate_sprite, setTilemap) - 504usize];
+    ["Offset of field: playdate_sprite::getTilemap"]
+        [::core::mem::offset_of!(playdate_sprite, getTilemap) - 512usize];
 };
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -2466,11 +2732,6 @@ const _: () = {
     ["Offset of field: playdate_sound_source::setFinishCallback"]
         [::core::mem::offset_of!(playdate_sound_source, setFinishCallback) - 24usize];
 };
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct FilePlayer {
-    _unused: [u8; 0],
-}
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sound_fileplayer {
@@ -4002,10 +4263,10 @@ pub struct playdate_sound_channel {
         ) -> *mut SoundSource,
     >,
     pub addEffect: ::core::option::Option<
-        unsafe extern "C" fn(channel: *mut SoundChannel, effect: *mut SoundEffect),
+        unsafe extern "C" fn(channel: *mut SoundChannel, effect: *mut SoundEffect) -> ctypes::c_int,
     >,
     pub removeEffect: ::core::option::Option<
-        unsafe extern "C" fn(channel: *mut SoundChannel, effect: *mut SoundEffect),
+        unsafe extern "C" fn(channel: *mut SoundChannel, effect: *mut SoundEffect) -> ctypes::c_int,
     >,
     pub setVolume:
         ::core::option::Option<unsafe extern "C" fn(channel: *mut SoundChannel, volume: f32)>,
@@ -4210,10 +4471,12 @@ pub struct playdate_display {
     pub setFlipped:
         ::core::option::Option<unsafe extern "C" fn(x: ctypes::c_int, y: ctypes::c_int)>,
     pub setOffset: ::core::option::Option<unsafe extern "C" fn(x: ctypes::c_int, y: ctypes::c_int)>,
+    pub getRefreshRate: ::core::option::Option<unsafe extern "C" fn() -> f32>,
+    pub getFPS: ::core::option::Option<unsafe extern "C" fn() -> f32>,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of playdate_display"][::core::mem::size_of::<playdate_display>() - 64usize];
+    ["Size of playdate_display"][::core::mem::size_of::<playdate_display>() - 80usize];
     ["Alignment of playdate_display"][::core::mem::align_of::<playdate_display>() - 8usize];
     ["Offset of field: playdate_display::getWidth"]
         [::core::mem::offset_of!(playdate_display, getWidth) - 0usize];
@@ -4231,6 +4494,10 @@ const _: () = {
         [::core::mem::offset_of!(playdate_display, setFlipped) - 48usize];
     ["Offset of field: playdate_display::setOffset"]
         [::core::mem::offset_of!(playdate_display, setOffset) - 56usize];
+    ["Offset of field: playdate_display::getRefreshRate"]
+        [::core::mem::offset_of!(playdate_display, getRefreshRate) - 64usize];
+    ["Offset of field: playdate_display::getFPS"]
+        [::core::mem::offset_of!(playdate_display, getFPS) - 72usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -4398,6 +4665,363 @@ const _: () = {
     ["Offset of field: playdate_scoreboards::freeScoresList"]
         [::core::mem::offset_of!(playdate_scoreboards, freeScoresList) - 48usize];
 };
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum PDNetErr {
+    NET_OK = 0,
+    NET_NO_DEVICE = -1,
+    NET_BUSY = -2,
+    NET_WRITE_ERROR = -3,
+    NET_WRITE_BUSY = -4,
+    NET_WRITE_TIMEOUT = -5,
+    NET_READ_ERROR = -6,
+    NET_READ_BUSY = -7,
+    NET_READ_TIMEOUT = -8,
+    NET_READ_OVERFLOW = -9,
+    NET_FRAME_ERROR = -10,
+    NET_BAD_RESPONSE = -11,
+    NET_ERROR_RESPONSE = -12,
+    NET_RESET_TIMEOUT = -13,
+    NET_BUFFER_TOO_SMALL = -14,
+    NET_UNEXPECTED_RESPONSE = -15,
+    NET_NOT_CONNECTED_TO_AP = -16,
+    NET_NOT_IMPLEMENTED = -17,
+    NET_CONNECTION_CLOSED = -18,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum WifiStatus {
+    #[doc = "!< Not connected to an AP"]
+    kWifiNotConnected = 0,
+    #[doc = "!< Device is connected to an AP"]
+    kWifiConnected = 1,
+    #[doc = "!< A connection has been attempted and no configured AP was available"]
+    kWifiNotAvailable = 2,
+}
+pub type HTTPConnectionCallback =
+    ::core::option::Option<unsafe extern "C" fn(connection: *mut HTTPConnection)>;
+pub type HTTPHeaderCallback = ::core::option::Option<
+    unsafe extern "C" fn(
+        conn: *mut HTTPConnection,
+        key: *const ctypes::c_char,
+        value: *const ctypes::c_char,
+    ),
+>;
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct playdate_http {
+    pub requestAccess: ::core::option::Option<
+        unsafe extern "C" fn(
+            server: *const ctypes::c_char,
+            port: ctypes::c_int,
+            usessl: bool,
+            purpose: *const ctypes::c_char,
+            requestCallback: AccessRequestCallback,
+            userdata: *mut ctypes::c_void,
+        ) -> accessReply,
+    >,
+    pub newConnection: ::core::option::Option<
+        unsafe extern "C" fn(
+            server: *const ctypes::c_char,
+            port: ctypes::c_int,
+            usessl: bool,
+        ) -> *mut HTTPConnection,
+    >,
+    pub retain: ::core::option::Option<
+        unsafe extern "C" fn(http: *mut HTTPConnection) -> *mut HTTPConnection,
+    >,
+    pub release: ::core::option::Option<unsafe extern "C" fn(http: *mut HTTPConnection)>,
+    pub setConnectTimeout: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut HTTPConnection, ms: ctypes::c_int),
+    >,
+    pub setKeepAlive: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut HTTPConnection, keepalive: bool),
+    >,
+    pub setByteRange: ::core::option::Option<
+        unsafe extern "C" fn(
+            connection: *mut HTTPConnection,
+            start: ctypes::c_int,
+            end: ctypes::c_int,
+        ),
+    >,
+    pub setUserdata: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut HTTPConnection, userdata: *mut ctypes::c_void),
+    >,
+    pub getUserdata: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut HTTPConnection) -> *mut ctypes::c_void,
+    >,
+    pub get: ::core::option::Option<
+        unsafe extern "C" fn(
+            conn: *mut HTTPConnection,
+            path: *const ctypes::c_char,
+            headers: *const ctypes::c_char,
+            headerlen: usize,
+        ) -> PDNetErr,
+    >,
+    pub post: ::core::option::Option<
+        unsafe extern "C" fn(
+            conn: *mut HTTPConnection,
+            path: *const ctypes::c_char,
+            headers: *const ctypes::c_char,
+            headerlen: usize,
+            body: *const ctypes::c_char,
+            bodylen: usize,
+        ) -> PDNetErr,
+    >,
+    pub query: ::core::option::Option<
+        unsafe extern "C" fn(
+            conn: *mut HTTPConnection,
+            method: *const ctypes::c_char,
+            path: *const ctypes::c_char,
+            headers: *const ctypes::c_char,
+            headerlen: usize,
+            body: *const ctypes::c_char,
+            bodylen: usize,
+        ) -> PDNetErr,
+    >,
+    pub getError:
+        ::core::option::Option<unsafe extern "C" fn(connection: *mut HTTPConnection) -> PDNetErr>,
+    pub getProgress: ::core::option::Option<
+        unsafe extern "C" fn(
+            conn: *mut HTTPConnection,
+            read: *mut ctypes::c_int,
+            total: *mut ctypes::c_int,
+        ),
+    >,
+    pub getResponseStatus: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut HTTPConnection) -> ctypes::c_int,
+    >,
+    pub getBytesAvailable:
+        ::core::option::Option<unsafe extern "C" fn(conn: *mut HTTPConnection) -> usize>,
+    pub setReadTimeout:
+        ::core::option::Option<unsafe extern "C" fn(conn: *mut HTTPConnection, ms: ctypes::c_int)>,
+    pub setReadBufferSize: ::core::option::Option<
+        unsafe extern "C" fn(conn: *mut HTTPConnection, bytes: ctypes::c_int),
+    >,
+    pub read: ::core::option::Option<
+        unsafe extern "C" fn(
+            conn: *mut HTTPConnection,
+            buf: *mut ctypes::c_void,
+            buflen: ctypes::c_uint,
+        ) -> ctypes::c_int,
+    >,
+    pub close: ::core::option::Option<unsafe extern "C" fn(connection: *mut HTTPConnection)>,
+    pub setHeaderReceivedCallback: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut HTTPConnection, headercb: HTTPHeaderCallback),
+    >,
+    pub setHeadersReadCallback: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut HTTPConnection, callback: HTTPConnectionCallback),
+    >,
+    pub setResponseCallback: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut HTTPConnection, callback: HTTPConnectionCallback),
+    >,
+    pub setRequestCompleteCallback: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut HTTPConnection, callback: HTTPConnectionCallback),
+    >,
+    pub setConnectionClosedCallback: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut HTTPConnection, callback: HTTPConnectionCallback),
+    >,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of playdate_http"][::core::mem::size_of::<playdate_http>() - 200usize];
+    ["Alignment of playdate_http"][::core::mem::align_of::<playdate_http>() - 8usize];
+    ["Offset of field: playdate_http::requestAccess"]
+        [::core::mem::offset_of!(playdate_http, requestAccess) - 0usize];
+    ["Offset of field: playdate_http::newConnection"]
+        [::core::mem::offset_of!(playdate_http, newConnection) - 8usize];
+    ["Offset of field: playdate_http::retain"]
+        [::core::mem::offset_of!(playdate_http, retain) - 16usize];
+    ["Offset of field: playdate_http::release"]
+        [::core::mem::offset_of!(playdate_http, release) - 24usize];
+    ["Offset of field: playdate_http::setConnectTimeout"]
+        [::core::mem::offset_of!(playdate_http, setConnectTimeout) - 32usize];
+    ["Offset of field: playdate_http::setKeepAlive"]
+        [::core::mem::offset_of!(playdate_http, setKeepAlive) - 40usize];
+    ["Offset of field: playdate_http::setByteRange"]
+        [::core::mem::offset_of!(playdate_http, setByteRange) - 48usize];
+    ["Offset of field: playdate_http::setUserdata"]
+        [::core::mem::offset_of!(playdate_http, setUserdata) - 56usize];
+    ["Offset of field: playdate_http::getUserdata"]
+        [::core::mem::offset_of!(playdate_http, getUserdata) - 64usize];
+    ["Offset of field: playdate_http::get"][::core::mem::offset_of!(playdate_http, get) - 72usize];
+    ["Offset of field: playdate_http::post"]
+        [::core::mem::offset_of!(playdate_http, post) - 80usize];
+    ["Offset of field: playdate_http::query"]
+        [::core::mem::offset_of!(playdate_http, query) - 88usize];
+    ["Offset of field: playdate_http::getError"]
+        [::core::mem::offset_of!(playdate_http, getError) - 96usize];
+    ["Offset of field: playdate_http::getProgress"]
+        [::core::mem::offset_of!(playdate_http, getProgress) - 104usize];
+    ["Offset of field: playdate_http::getResponseStatus"]
+        [::core::mem::offset_of!(playdate_http, getResponseStatus) - 112usize];
+    ["Offset of field: playdate_http::getBytesAvailable"]
+        [::core::mem::offset_of!(playdate_http, getBytesAvailable) - 120usize];
+    ["Offset of field: playdate_http::setReadTimeout"]
+        [::core::mem::offset_of!(playdate_http, setReadTimeout) - 128usize];
+    ["Offset of field: playdate_http::setReadBufferSize"]
+        [::core::mem::offset_of!(playdate_http, setReadBufferSize) - 136usize];
+    ["Offset of field: playdate_http::read"]
+        [::core::mem::offset_of!(playdate_http, read) - 144usize];
+    ["Offset of field: playdate_http::close"]
+        [::core::mem::offset_of!(playdate_http, close) - 152usize];
+    ["Offset of field: playdate_http::setHeaderReceivedCallback"]
+        [::core::mem::offset_of!(playdate_http, setHeaderReceivedCallback) - 160usize];
+    ["Offset of field: playdate_http::setHeadersReadCallback"]
+        [::core::mem::offset_of!(playdate_http, setHeadersReadCallback) - 168usize];
+    ["Offset of field: playdate_http::setResponseCallback"]
+        [::core::mem::offset_of!(playdate_http, setResponseCallback) - 176usize];
+    ["Offset of field: playdate_http::setRequestCompleteCallback"]
+        [::core::mem::offset_of!(playdate_http, setRequestCompleteCallback) - 184usize];
+    ["Offset of field: playdate_http::setConnectionClosedCallback"]
+        [::core::mem::offset_of!(playdate_http, setConnectionClosedCallback) - 192usize];
+};
+pub type TCPConnectionCallback =
+    ::core::option::Option<unsafe extern "C" fn(connection: *mut TCPConnection, err: PDNetErr)>;
+pub type TCPOpenCallback = ::core::option::Option<
+    unsafe extern "C" fn(conn: *mut TCPConnection, err: PDNetErr, ud: *mut ctypes::c_void),
+>;
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct playdate_tcp {
+    pub requestAccess: ::core::option::Option<
+        unsafe extern "C" fn(
+            server: *const ctypes::c_char,
+            port: ctypes::c_int,
+            usessl: bool,
+            purpose: *const ctypes::c_char,
+            requestCallback: AccessRequestCallback,
+            userdata: *mut ctypes::c_void,
+        ) -> accessReply,
+    >,
+    pub newConnection: ::core::option::Option<
+        unsafe extern "C" fn(
+            server: *const ctypes::c_char,
+            port: ctypes::c_int,
+            usessl: bool,
+        ) -> *mut TCPConnection,
+    >,
+    pub retain: ::core::option::Option<
+        unsafe extern "C" fn(http: *mut TCPConnection) -> *mut TCPConnection,
+    >,
+    pub release: ::core::option::Option<unsafe extern "C" fn(http: *mut TCPConnection)>,
+    pub getError:
+        ::core::option::Option<unsafe extern "C" fn(connection: *mut TCPConnection) -> PDNetErr>,
+    pub setConnectTimeout: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut TCPConnection, ms: ctypes::c_int),
+    >,
+    pub setUserdata: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut TCPConnection, userdata: *mut ctypes::c_void),
+    >,
+    pub getUserdata: ::core::option::Option<
+        unsafe extern "C" fn(connection: *mut TCPConnection) -> *mut ctypes::c_void,
+    >,
+    pub open: ::core::option::Option<
+        unsafe extern "C" fn(
+            conn: *mut TCPConnection,
+            cb: TCPOpenCallback,
+            ud: *mut ctypes::c_void,
+        ) -> PDNetErr,
+    >,
+    pub close: ::core::option::Option<unsafe extern "C" fn(conn: *mut TCPConnection) -> PDNetErr>,
+    pub setConnectionClosedCallback: ::core::option::Option<
+        unsafe extern "C" fn(conn: *mut TCPConnection, callback: TCPConnectionCallback),
+    >,
+    pub setReadTimeout:
+        ::core::option::Option<unsafe extern "C" fn(conn: *mut TCPConnection, ms: ctypes::c_int)>,
+    pub setReadBufferSize: ::core::option::Option<
+        unsafe extern "C" fn(conn: *mut TCPConnection, bytes: ctypes::c_int),
+    >,
+    pub getBytesAvailable:
+        ::core::option::Option<unsafe extern "C" fn(conn: *mut TCPConnection) -> usize>,
+    pub read: ::core::option::Option<
+        unsafe extern "C" fn(
+            conn: *mut TCPConnection,
+            buffer: *mut ctypes::c_void,
+            length: usize,
+        ) -> ctypes::c_int,
+    >,
+    pub write: ::core::option::Option<
+        unsafe extern "C" fn(
+            conn: *mut TCPConnection,
+            buffer: *const ctypes::c_void,
+            length: usize,
+        ) -> ctypes::c_int,
+    >,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of playdate_tcp"][::core::mem::size_of::<playdate_tcp>() - 128usize];
+    ["Alignment of playdate_tcp"][::core::mem::align_of::<playdate_tcp>() - 8usize];
+    ["Offset of field: playdate_tcp::requestAccess"]
+        [::core::mem::offset_of!(playdate_tcp, requestAccess) - 0usize];
+    ["Offset of field: playdate_tcp::newConnection"]
+        [::core::mem::offset_of!(playdate_tcp, newConnection) - 8usize];
+    ["Offset of field: playdate_tcp::retain"]
+        [::core::mem::offset_of!(playdate_tcp, retain) - 16usize];
+    ["Offset of field: playdate_tcp::release"]
+        [::core::mem::offset_of!(playdate_tcp, release) - 24usize];
+    ["Offset of field: playdate_tcp::getError"]
+        [::core::mem::offset_of!(playdate_tcp, getError) - 32usize];
+    ["Offset of field: playdate_tcp::setConnectTimeout"]
+        [::core::mem::offset_of!(playdate_tcp, setConnectTimeout) - 40usize];
+    ["Offset of field: playdate_tcp::setUserdata"]
+        [::core::mem::offset_of!(playdate_tcp, setUserdata) - 48usize];
+    ["Offset of field: playdate_tcp::getUserdata"]
+        [::core::mem::offset_of!(playdate_tcp, getUserdata) - 56usize];
+    ["Offset of field: playdate_tcp::open"][::core::mem::offset_of!(playdate_tcp, open) - 64usize];
+    ["Offset of field: playdate_tcp::close"]
+        [::core::mem::offset_of!(playdate_tcp, close) - 72usize];
+    ["Offset of field: playdate_tcp::setConnectionClosedCallback"]
+        [::core::mem::offset_of!(playdate_tcp, setConnectionClosedCallback) - 80usize];
+    ["Offset of field: playdate_tcp::setReadTimeout"]
+        [::core::mem::offset_of!(playdate_tcp, setReadTimeout) - 88usize];
+    ["Offset of field: playdate_tcp::setReadBufferSize"]
+        [::core::mem::offset_of!(playdate_tcp, setReadBufferSize) - 96usize];
+    ["Offset of field: playdate_tcp::getBytesAvailable"]
+        [::core::mem::offset_of!(playdate_tcp, getBytesAvailable) - 104usize];
+    ["Offset of field: playdate_tcp::read"][::core::mem::offset_of!(playdate_tcp, read) - 112usize];
+    ["Offset of field: playdate_tcp::write"]
+        [::core::mem::offset_of!(playdate_tcp, write) - 120usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct playdate_network {
+    pub http: *const playdate_http,
+    pub tcp: *const playdate_tcp,
+    pub getStatus: ::core::option::Option<unsafe extern "C" fn() -> WifiStatus>,
+    pub setEnabled: ::core::option::Option<
+        unsafe extern "C" fn(
+            flag: bool,
+            callback: ::core::option::Option<unsafe extern "C" fn(err: PDNetErr)>,
+        ),
+    >,
+    pub reserved: [usize; 3usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of playdate_network"][::core::mem::size_of::<playdate_network>() - 56usize];
+    ["Alignment of playdate_network"][::core::mem::align_of::<playdate_network>() - 8usize];
+    ["Offset of field: playdate_network::http"]
+        [::core::mem::offset_of!(playdate_network, http) - 0usize];
+    ["Offset of field: playdate_network::tcp"]
+        [::core::mem::offset_of!(playdate_network, tcp) - 8usize];
+    ["Offset of field: playdate_network::getStatus"]
+        [::core::mem::offset_of!(playdate_network, getStatus) - 16usize];
+    ["Offset of field: playdate_network::setEnabled"]
+        [::core::mem::offset_of!(playdate_network, setEnabled) - 24usize];
+    ["Offset of field: playdate_network::reserved"]
+        [::core::mem::offset_of!(playdate_network, reserved) - 32usize];
+};
+impl Default for playdate_network {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PlaydateAPI {
@@ -4410,10 +5034,11 @@ pub struct PlaydateAPI {
     pub lua: *const playdate_lua,
     pub json: *const playdate_json,
     pub scoreboards: *const playdate_scoreboards,
+    pub network: *const playdate_network,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of PlaydateAPI"][::core::mem::size_of::<PlaydateAPI>() - 72usize];
+    ["Size of PlaydateAPI"][::core::mem::size_of::<PlaydateAPI>() - 80usize];
     ["Alignment of PlaydateAPI"][::core::mem::align_of::<PlaydateAPI>() - 8usize];
     ["Offset of field: PlaydateAPI::system"][::core::mem::offset_of!(PlaydateAPI, system) - 0usize];
     ["Offset of field: PlaydateAPI::file"][::core::mem::offset_of!(PlaydateAPI, file) - 8usize];
@@ -4428,6 +5053,8 @@ const _: () = {
     ["Offset of field: PlaydateAPI::json"][::core::mem::offset_of!(PlaydateAPI, json) - 56usize];
     ["Offset of field: PlaydateAPI::scoreboards"]
         [::core::mem::offset_of!(PlaydateAPI, scoreboards) - 64usize];
+    ["Offset of field: PlaydateAPI::network"]
+        [::core::mem::offset_of!(PlaydateAPI, network) - 72usize];
 };
 impl Default for PlaydateAPI {
     fn default() -> Self {
@@ -4451,6 +5078,8 @@ pub enum PDSystemEvent {
     kEventKeyPressed = 7,
     kEventKeyReleased = 8,
     kEventLowPower = 9,
+    kEventMirrorStarted = 10,
+    kEventMirrorEnded = 11,
 }
 pub type __builtin_va_list = [__va_list_tag; 1usize];
 #[repr(C)]
