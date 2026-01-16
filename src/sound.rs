@@ -178,7 +178,7 @@ impl Sound {
                 format,
                 sample_rate,
                 (data.len() - offset) as i32,
-                1 // should free
+                0 // should not free
             )?;
             ensure!(
                 !raw_audio_sample.is_null(),
