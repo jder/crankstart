@@ -62,7 +62,7 @@ impl Network {
     }
 
     pub fn get() -> Self {
-        unsafe { NETWORK.clone() }
+        unsafe { (&raw const NETWORK).read().clone() }
     }
 
     fn api(&self) -> &playdate_network {
@@ -94,7 +94,7 @@ impl Network {
         ensure!(flag, "Callback is only supported when enabling Wi-Fi");
         unsafe {
             ensure!(
-                NETWORK_ENABLE_CALLBACK.is_none(),
+                (&raw const NETWORK_ENABLE_CALLBACK).read().is_none(),
                 "A previous set_enabled_with_callback call is still pending"
             );
             NETWORK_ENABLE_CALLBACK = Some(Box::new(callback));

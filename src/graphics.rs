@@ -515,7 +515,7 @@ impl Graphics {
     }
 
     pub fn get() -> Self {
-        unsafe { GRAPHICS.clone() }
+        unsafe { (&raw const GRAPHICS).read().clone() }
     }
 
     pub fn get_ptr() -> *const crankstart_sys::playdate_graphics {

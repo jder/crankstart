@@ -291,6 +291,7 @@ macro_rules! crankstart_game {
             }
 
             fn cleanup(message: &str) {
+                // TODO: this is likely UB because GAME_RUNNER is likely already being used
                 unsafe {
                     GAME_RUNNER
                         .as_mut()
@@ -398,9 +399,7 @@ fn panic(#[allow(unused)] panic_info: &::core::panic::PanicInfo) -> ! {
 
     #[cfg(target_os = "macos")]
     {
-        unsafe {
-            core::intrinsics::breakpoint();
-        }
+        core::intrinsics::breakpoint();
         abort_with_addr(0xdeadbeef);
     }
     #[cfg(not(target_os = "macos"))]
