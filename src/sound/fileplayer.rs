@@ -1,10 +1,11 @@
 use crate::{pd_func_caller, pd_func_caller_log};
 use crankstart_sys::ctypes;
 
+use alloc::format;
 use anyhow::{anyhow, ensure, Error, Result};
 use cstr_core::CString;
 
-use super::SoundSource;
+use super::{Sound, SoundSource};
 
 /// Note: Make sure you hold on to a FilePlayer until the file has played as much as you want,
 /// because dropping it will stop playback.
@@ -56,9 +57,15 @@ impl FilePlayer {
         if result == 1 {
             Ok(())
         } else {
+            let sound_error = match Sound::get().get_error() {
+                Ok(Some(err)) => err,
+                Ok(None) => "unknown sound error".into(),
+                Err(err) => format!("sound.getError failed: {err:#}"),
+            };
             Err(anyhow!(
-                "load_into_player given nonexistent file '{}'",
-                file_path
+                "load_into_player failed for '{}': {}",
+                file_path,
+                sound_error
             ))
         }
     }
