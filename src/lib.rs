@@ -447,7 +447,7 @@ fn alloc_error(_layout: Layout) -> ! {
     abort_with_addr(0xDEADFA11);
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "host-test")))]
 #[no_mangle]
 pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     let mut i = 0;
@@ -458,7 +458,7 @@ pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut
     dest
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "host-test")))]
 #[no_mangle]
 pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     if src < dest as *const u8 {
@@ -479,7 +479,7 @@ pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mu
     dest
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "host-test")))]
 #[no_mangle]
 pub unsafe extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     let mut i = 0;
@@ -494,13 +494,13 @@ pub unsafe extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     0
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "host-test")))]
 #[no_mangle]
 pub unsafe extern "C" fn bcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     memcmp(s1, s2, n)
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "host-test")))]
 pub unsafe fn memset_internal(s: *mut u8, c: crankstart_sys::ctypes::c_int, n: usize) -> *mut u8 {
     let mut i = 0;
     while i < n {
@@ -510,72 +510,86 @@ pub unsafe fn memset_internal(s: *mut u8, c: crankstart_sys::ctypes::c_int, n: u
     s
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "host-test")))]
 #[no_mangle]
 pub unsafe extern "C" fn memset(s: *mut u8, c: crankstart_sys::ctypes::c_int, n: usize) -> *mut u8 {
     memset_internal(s, c, n)
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "host-test")))]
 #[no_mangle]
 pub unsafe extern "C" fn __bzero(s: *mut u8, n: usize) {
     memset_internal(s, 0, n);
 }
 
+#[cfg(not(feature = "host-test"))]
 #[no_mangle]
 pub extern "C" fn _sbrk() {}
 
+#[cfg(not(feature = "host-test"))]
 #[cfg(not(target_os = "windows"))]
 #[no_mangle]
 pub extern "C" fn _write() {}
 
+#[cfg(not(feature = "host-test"))]
 #[cfg(not(target_os = "windows"))]
 #[no_mangle]
 pub extern "C" fn _close() {}
 
+#[cfg(not(feature = "host-test"))]
 #[cfg(not(target_os = "windows"))]
 #[no_mangle]
 pub extern "C" fn _lseek() {}
 
+#[cfg(not(feature = "host-test"))]
 #[cfg(not(target_os = "windows"))]
 #[no_mangle]
 pub extern "C" fn _read() {}
 
+#[cfg(not(feature = "host-test"))]
 #[no_mangle]
 pub extern "C" fn _fstat() {}
 
+#[cfg(not(feature = "host-test"))]
 #[no_mangle]
 pub extern "C" fn _isatty() {}
 
+#[cfg(not(feature = "host-test"))]
 #[cfg(not(target_os = "windows"))]
 #[no_mangle]
 pub extern "C" fn _exit() {}
 
+#[cfg(not(feature = "host-test"))]
 #[no_mangle]
 pub extern "C" fn _open() {}
 
+#[cfg(not(feature = "host-test"))]
 #[no_mangle]
 pub extern "C" fn _kill() {}
 
+#[cfg(not(feature = "host-test"))]
 #[no_mangle]
 pub extern "C" fn _getpid() {}
 
+#[cfg(not(feature = "host-test"))]
 #[no_mangle]
 pub extern "C" fn rust_eh_personality() {
     unimplemented!();
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "host-test")))]
 #[no_mangle]
 extern "C" fn _Unwind_Resume() {
     unimplemented!();
 }
 
+#[cfg(not(feature = "host-test"))]
 #[no_mangle]
 extern "C" fn __exidx_start() {
     unimplemented!();
 }
 
+#[cfg(not(feature = "host-test"))]
 #[no_mangle]
 extern "C" fn __exidx_end() {
     unimplemented!();
