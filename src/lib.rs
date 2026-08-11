@@ -141,7 +141,7 @@ pub trait Game {
         Ok(())
     }
 
-    fn cleanup(&mut self, message: &str) {}
+    fn cleanup(message: &str) {}
 }
 
 pub type GamePtr<T> = Box<T>;
@@ -203,12 +203,6 @@ impl<T: 'static + Game> GameRunner<T> {
             }) {
                 log_to_console!("Error in serial_message_callback: {err:#}")
             }
-        }
-    }
-
-    pub fn cleanup(&mut self, message: &str) {
-        if let Some(game) = self.game.as_mut() {
-            game.cleanup(message);
         }
     }
 
@@ -291,12 +285,7 @@ macro_rules! crankstart_game {
             }
 
             fn cleanup(message: &str) {
-                // TODO: this is likely UB because GAME_RUNNER is likely already being used
-                unsafe {
-                    GAME_RUNNER
-                        .as_mut()
-                        .map(|game_runner| game_runner.cleanup(message))
-                };
+                <$game_struct as crankstart::Game>::cleanup(message);
             }
 
             #[no_mangle]
@@ -326,6 +315,9 @@ macro_rules! crankstart_game {
                                 "Got error while setting serial message callback: {err:#}"
                             );
                         });
+                    let cleanup_fn: CleanupFunction = cleanup;
+                    CLEANUP_FUNCTION
+                        .store(cleanup_fn as usize, core::sync::atomic::Ordering::SeqCst);
                     let game = match $game_struct::new(&mut playdate) {
                         Ok(game) => Some(game),
                         Err(err) => {
@@ -336,9 +328,6 @@ macro_rules! crankstart_game {
 
                     unsafe {
                         GAME_RUNNER = Some(GameRunner::new(game, playdate));
-                        let cleanup_fn: CleanupFunction = cleanup;
-                        CLEANUP_FUNCTION
-                            .store(cleanup_fn as usize, core::sync::atomic::Ordering::SeqCst);
                     }
                 }
 
