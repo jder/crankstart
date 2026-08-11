@@ -347,6 +347,7 @@ pub static CLEANUP_FUNCTION: core::sync::atomic::AtomicUsize =
 
 pub type CleanupFunction = fn(&str);
 
+#[cfg(not(feature = "host-test"))]
 #[panic_handler]
 fn panic(#[allow(unused)] panic_info: &::core::panic::PanicInfo) -> ! {
     use alloc::string::ToString;
@@ -433,11 +434,13 @@ impl talc::OomHandler for PlaydateAllocator {
     }
 }
 
+#[cfg(not(feature = "host-test"))]
 #[global_allocator]
 pub(crate) static mut A: Talck<talc::locking::AssumeUnlockable, PlaydateAllocator> =
     Talck::new(Talc::new(PlaydateAllocator));
 
 // define what happens in an Out Of Memory (OOM) condition
+#[cfg(not(feature = "host-test"))]
 #[alloc_error_handler]
 fn alloc_error(_layout: Layout) -> ! {
     System::log_to_console("Out of Memory\0");
