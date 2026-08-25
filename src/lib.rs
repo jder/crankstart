@@ -11,6 +11,7 @@ pub mod geometry;
 pub mod graphics;
 pub mod lua;
 pub mod network;
+pub mod scoreboards;
 pub mod sound;
 pub mod sprite;
 pub mod system;
@@ -25,6 +26,9 @@ use {
         graphics::{Graphics, PDRect},
         lua::Lua,
         network::Network,
+        scoreboards::{
+            BoardsList, Score, ScoreboardError, ScoreboardEvent, Scoreboards, ScoresList,
+        },
         sound::Sound,
         sprite::{
             Sprite, SpriteCollideFunction, SpriteDrawFunction, SpriteManager, SpriteUpdateFunction,
@@ -64,6 +68,8 @@ impl Playdate {
         Display::new(display);
         let network = playdate_api.network;
         Network::new(network)?;
+        let scoreboards = playdate_api.scoreboards;
+        Scoreboards::new(scoreboards)?;
         Ok(Self { playdate })
     }
 }
@@ -141,6 +147,31 @@ pub trait Game {
         Ok(())
     }
 
+    fn score_added(&mut self, result: Result<Score, ScoreboardError>) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn personal_best_received(
+        &mut self,
+        result: Result<Option<Score>, ScoreboardError>,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn scoreboards_received(
+        &mut self,
+        result: Result<BoardsList, ScoreboardError>,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn scores_received(
+        &mut self,
+        result: Result<ScoresList, ScoreboardError>,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
     fn cleanup(message: &str) {}
 }
 
@@ -167,6 +198,17 @@ impl<T: 'static + Game> GameRunner<T> {
         }
 
         if let Some(game) = self.game.as_mut() {
+            while let Some(event) = Scoreboards::pop_event() {
+                let result = match event {
+                    ScoreboardEvent::ScoreAdded(result) => game.score_added(result),
+                    ScoreboardEvent::PersonalBest(result) => game.personal_best_received(result),
+                    ScoreboardEvent::Scoreboards(result) => game.scoreboards_received(result),
+                    ScoreboardEvent::Scores(result) => game.scores_received(result),
+                };
+                if let Err(err) = result {
+                    log_to_console!("Error in scoreboard callback: {err:#}")
+                }
+            }
             if let Err(err) = game.update(&mut self.playdate) {
                 log_to_console!("Error in update: {err:#}")
             }

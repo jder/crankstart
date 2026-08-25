@@ -911,7 +911,7 @@ pub struct playdate_graphics {
         ::core::option::Option<unsafe extern "C" fn(bitmap: *mut LCDBitmap) -> *mut LCDBitmap>,
     pub setStencilImage:
         ::core::option::Option<unsafe extern "C" fn(stencil: *mut LCDBitmap, tile: ctypes::c_int)>,
-    pub makeFontFromData: ::core::option::Option<
+    pub makeFontFromData_deprecated: ::core::option::Option<
         unsafe extern "C" fn(data: *mut LCDFontData, wide: ctypes::c_int) -> *mut LCDFont,
     >,
     pub getTextTracking: ::core::option::Option<unsafe extern "C" fn() -> ctypes::c_int>,
@@ -980,10 +980,25 @@ pub struct playdate_graphics {
     >,
     pub tilemap: *const playdate_tilemap,
     pub videostream: *const playdate_videostream,
+    pub getFontGlyph: ::core::option::Option<
+        unsafe extern "C" fn(
+            font: *mut LCDFont,
+            c: u32,
+            bitmap: *mut *mut LCDBitmap,
+            advance: *mut ctypes::c_int,
+        ) -> *mut LCDFontGlyph,
+    >,
+    pub makeFontFromData: ::core::option::Option<
+        unsafe extern "C" fn(
+            data: *mut LCDFontData,
+            wide: ctypes::c_int,
+            datalength: ctypes::c_int,
+        ) -> *mut LCDFont,
+    >,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of playdate_graphics"][::core::mem::size_of::<playdate_graphics>() - 552usize];
+    ["Size of playdate_graphics"][::core::mem::size_of::<playdate_graphics>() - 568usize];
     ["Alignment of playdate_graphics"][::core::mem::align_of::<playdate_graphics>() - 8usize];
     ["Offset of field: playdate_graphics::video"]
         [::core::mem::offset_of!(playdate_graphics, video) - 0usize];
@@ -1101,8 +1116,8 @@ const _: () = {
         [::core::mem::offset_of!(playdate_graphics, getBitmapMask) - 448usize];
     ["Offset of field: playdate_graphics::setStencilImage"]
         [::core::mem::offset_of!(playdate_graphics, setStencilImage) - 456usize];
-    ["Offset of field: playdate_graphics::makeFontFromData"]
-        [::core::mem::offset_of!(playdate_graphics, makeFontFromData) - 464usize];
+    ["Offset of field: playdate_graphics::makeFontFromData_deprecated"]
+        [::core::mem::offset_of!(playdate_graphics, makeFontFromData_deprecated) - 464usize];
     ["Offset of field: playdate_graphics::getTextTracking"]
         [::core::mem::offset_of!(playdate_graphics, getTextTracking) - 472usize];
     ["Offset of field: playdate_graphics::setPixel"]
@@ -1123,6 +1138,10 @@ const _: () = {
         [::core::mem::offset_of!(playdate_graphics, tilemap) - 536usize];
     ["Offset of field: playdate_graphics::videostream"]
         [::core::mem::offset_of!(playdate_graphics, videostream) - 544usize];
+    ["Offset of field: playdate_graphics::getFontGlyph"]
+        [::core::mem::offset_of!(playdate_graphics, getFontGlyph) - 552usize];
+    ["Offset of field: playdate_graphics::makeFontFromData"]
+        [::core::mem::offset_of!(playdate_graphics, makeFontFromData) - 560usize];
 };
 impl Default for playdate_graphics {
     fn default() -> Self {
@@ -1186,7 +1205,7 @@ pub struct PDButtons(pub ctypes::c_uint);
 pub enum PDLanguage {
     kPDLanguageEnglish = 0,
     kPDLanguageJapanese = 1,
-    kPDLanguageUnknown = 2,
+    kPDLanguageSystem = 2,
 }
 pub type AccessRequestCallback =
     ::core::option::Option<unsafe extern "C" fn(allowed: bool, userdata: *mut ctypes::c_void)>;
@@ -1249,13 +1268,15 @@ pub type PDButtonCallbackFunction = ::core::option::Option<
 pub struct PDInfo {
     pub osversion: u32,
     pub language: PDLanguage,
+    pub pdxversion: u32,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of PDInfo"][::core::mem::size_of::<PDInfo>() - 8usize];
+    ["Size of PDInfo"][::core::mem::size_of::<PDInfo>() - 12usize];
     ["Alignment of PDInfo"][::core::mem::align_of::<PDInfo>() - 4usize];
     ["Offset of field: PDInfo::osversion"][::core::mem::offset_of!(PDInfo, osversion) - 0usize];
     ["Offset of field: PDInfo::language"][::core::mem::offset_of!(PDInfo, language) - 4usize];
+    ["Offset of field: PDInfo::pdxversion"][::core::mem::offset_of!(PDInfo, pdxversion) - 8usize];
 };
 impl Default for PDInfo {
     fn default() -> Self {
@@ -1265,6 +1286,13 @@ impl Default for PDInfo {
             s.assume_init()
         }
     }
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum PDPowerStatus {
+    kPDPowerStatusCharging = 1,
+    kPDPowerStatusUsb = 2,
+    kPDPowerStatusScrews = 4,
 }
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
@@ -1410,10 +1438,19 @@ pub struct playdate_sys {
         unsafe extern "C" fn(command: u8, data: *mut ctypes::c_void, len: ctypes::c_int) -> bool,
     >,
     pub getSystemInfo: ::core::option::Option<unsafe extern "C" fn() -> *const PDInfo>,
+    pub getLocalizedText: ::core::option::Option<
+        unsafe extern "C" fn(
+            key: *const ctypes::c_char,
+            language: PDLanguage,
+        ) -> *mut ctypes::c_char,
+    >,
+    pub getVolume: ::core::option::Option<unsafe extern "C" fn() -> f32>,
+    pub getPowerStatus: ::core::option::Option<unsafe extern "C" fn() -> PDPowerStatus>,
+    pub exitToLauncher: ::core::option::Option<unsafe extern "C" fn()>,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of playdate_sys"][::core::mem::size_of::<playdate_sys>() - 400usize];
+    ["Size of playdate_sys"][::core::mem::size_of::<playdate_sys>() - 432usize];
     ["Alignment of playdate_sys"][::core::mem::align_of::<playdate_sys>() - 8usize];
     ["Offset of field: playdate_sys::realloc"]
         [::core::mem::offset_of!(playdate_sys, realloc) - 0usize];
@@ -1515,6 +1552,14 @@ const _: () = {
         [::core::mem::offset_of!(playdate_sys, sendMirrorData) - 384usize];
     ["Offset of field: playdate_sys::getSystemInfo"]
         [::core::mem::offset_of!(playdate_sys, getSystemInfo) - 392usize];
+    ["Offset of field: playdate_sys::getLocalizedText"]
+        [::core::mem::offset_of!(playdate_sys, getLocalizedText) - 400usize];
+    ["Offset of field: playdate_sys::getVolume"]
+        [::core::mem::offset_of!(playdate_sys, getVolume) - 408usize];
+    ["Offset of field: playdate_sys::getPowerStatus"]
+        [::core::mem::offset_of!(playdate_sys, getPowerStatus) - 416usize];
+    ["Offset of field: playdate_sys::exitToLauncher"]
+        [::core::mem::offset_of!(playdate_sys, exitToLauncher) - 424usize];
 };
 pub type lua_State = *mut ctypes::c_void;
 pub type lua_CFunction =
@@ -2545,10 +2590,12 @@ pub struct playdate_sprite {
         ::core::option::Option<unsafe extern "C" fn(s: *mut LCDSprite, tilemap: *mut LCDTileMap)>,
     pub getTilemap:
         ::core::option::Option<unsafe extern "C" fn(s: *mut LCDSprite) -> *mut LCDTileMap>,
+    pub markDirtyRect:
+        ::core::option::Option<unsafe extern "C" fn(s: *mut LCDSprite, rect: PDRect)>,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of playdate_sprite"][::core::mem::size_of::<playdate_sprite>() - 520usize];
+    ["Size of playdate_sprite"][::core::mem::size_of::<playdate_sprite>() - 528usize];
     ["Alignment of playdate_sprite"][::core::mem::align_of::<playdate_sprite>() - 8usize];
     ["Offset of field: playdate_sprite::setAlwaysRedraw"]
         [::core::mem::offset_of!(playdate_sprite, setAlwaysRedraw) - 0usize];
@@ -2680,6 +2727,8 @@ const _: () = {
         [::core::mem::offset_of!(playdate_sprite, setTilemap) - 504usize];
     ["Offset of field: playdate_sprite::getTilemap"]
         [::core::mem::offset_of!(playdate_sprite, getTilemap) - 512usize];
+    ["Offset of field: playdate_sprite::markDirtyRect"]
+        [::core::mem::offset_of!(playdate_sprite, markDirtyRect) - 520usize];
 };
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -2692,6 +2741,11 @@ pub enum SoundFormat {
     kSoundADPCMStereo = 5,
 }
 pub type MIDINote = f32;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct PDSynthSignalValue {
+    _unused: [u8; 0],
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SoundSource {
@@ -2805,11 +2859,17 @@ pub struct playdate_sound_fileplayer {
             bufferLen: f32,
         ),
     >,
+    pub setRateModulator: ::core::option::Option<
+        unsafe extern "C" fn(player: *mut FilePlayer, mod_: *mut PDSynthSignalValue),
+    >,
+    pub getRateModulator: ::core::option::Option<
+        unsafe extern "C" fn(player: *mut FilePlayer) -> *mut PDSynthSignalValue,
+    >,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of playdate_sound_fileplayer"]
-        [::core::mem::size_of::<playdate_sound_fileplayer>() - 176usize];
+        [::core::mem::size_of::<playdate_sound_fileplayer>() - 192usize];
     ["Alignment of playdate_sound_fileplayer"]
         [::core::mem::align_of::<playdate_sound_fileplayer>() - 8usize];
     ["Offset of field: playdate_sound_fileplayer::newPlayer"]
@@ -2856,6 +2916,10 @@ const _: () = {
         [::core::mem::offset_of!(playdate_sound_fileplayer, fadeVolume) - 160usize];
     ["Offset of field: playdate_sound_fileplayer::setMP3StreamSource"]
         [::core::mem::offset_of!(playdate_sound_fileplayer, setMP3StreamSource) - 168usize];
+    ["Offset of field: playdate_sound_fileplayer::setRateModulator"]
+        [::core::mem::offset_of!(playdate_sound_fileplayer, setRateModulator) - 176usize];
+    ["Offset of field: playdate_sound_fileplayer::getRateModulator"]
+        [::core::mem::offset_of!(playdate_sound_fileplayer, getRateModulator) - 184usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -2976,11 +3040,17 @@ pub struct playdate_sound_sampleplayer {
     pub setPaused: ::core::option::Option<
         unsafe extern "C" fn(player: *mut SamplePlayer, flag: ctypes::c_int),
     >,
+    pub setRateModulator: ::core::option::Option<
+        unsafe extern "C" fn(player: *mut SamplePlayer, mod_: *mut PDSynthSignalValue),
+    >,
+    pub getRateModulator: ::core::option::Option<
+        unsafe extern "C" fn(player: *mut SamplePlayer) -> *mut PDSynthSignalValue,
+    >,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of playdate_sound_sampleplayer"]
-        [::core::mem::size_of::<playdate_sound_sampleplayer>() - 136usize];
+        [::core::mem::size_of::<playdate_sound_sampleplayer>() - 152usize];
     ["Alignment of playdate_sound_sampleplayer"]
         [::core::mem::align_of::<playdate_sound_sampleplayer>() - 8usize];
     ["Offset of field: playdate_sound_sampleplayer::newPlayer"]
@@ -3017,12 +3087,11 @@ const _: () = {
         [::core::mem::offset_of!(playdate_sound_sampleplayer, getRate) - 120usize];
     ["Offset of field: playdate_sound_sampleplayer::setPaused"]
         [::core::mem::offset_of!(playdate_sound_sampleplayer, setPaused) - 128usize];
+    ["Offset of field: playdate_sound_sampleplayer::setRateModulator"]
+        [::core::mem::offset_of!(playdate_sound_sampleplayer, setRateModulator) - 136usize];
+    ["Offset of field: playdate_sound_sampleplayer::getRateModulator"]
+        [::core::mem::offset_of!(playdate_sound_sampleplayer, getRateModulator) - 144usize];
 };
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct PDSynthSignalValue {
-    _unused: [u8; 0],
-}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct PDSynthSignal {
@@ -3137,10 +3206,12 @@ pub struct playdate_sound_lfo {
         ::core::option::Option<unsafe extern "C" fn(lfo: *mut PDSynthLFO, global: ctypes::c_int)>,
     pub setStartPhase:
         ::core::option::Option<unsafe extern "C" fn(lfo: *mut PDSynthLFO, phase: f32)>,
+    pub setRandomSeed:
+        ::core::option::Option<unsafe extern "C" fn(lfo: *mut PDSynthLFO, value: u16)>,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of playdate_sound_lfo"][::core::mem::size_of::<playdate_sound_lfo>() - 112usize];
+    ["Size of playdate_sound_lfo"][::core::mem::size_of::<playdate_sound_lfo>() - 120usize];
     ["Alignment of playdate_sound_lfo"][::core::mem::align_of::<playdate_sound_lfo>() - 8usize];
     ["Offset of field: playdate_sound_lfo::newLFO"]
         [::core::mem::offset_of!(playdate_sound_lfo, newLFO) - 0usize];
@@ -3170,6 +3241,8 @@ const _: () = {
         [::core::mem::offset_of!(playdate_sound_lfo, setGlobal) - 96usize];
     ["Offset of field: playdate_sound_lfo::setStartPhase"]
         [::core::mem::offset_of!(playdate_sound_lfo, setStartPhase) - 104usize];
+    ["Offset of field: playdate_sound_lfo::setRandomSeed"]
+        [::core::mem::offset_of!(playdate_sound_lfo, setRandomSeed) - 112usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3969,11 +4042,29 @@ pub struct playdate_sound_effect_bitcrusher {
     pub getUndersampleModulator: ::core::option::Option<
         unsafe extern "C" fn(filter: *mut BitCrusher) -> *mut PDSynthSignalValue,
     >,
+    pub setExponential:
+        ::core::option::Option<unsafe extern "C" fn(filter: *mut BitCrusher, flag: bool)>,
+    pub setDepth:
+        ::core::option::Option<unsafe extern "C" fn(filter: *mut BitCrusher, amount: f32)>,
+    pub setDepthModulator: ::core::option::Option<
+        unsafe extern "C" fn(filter: *mut BitCrusher, signal: *mut PDSynthSignalValue),
+    >,
+    pub getDepthModulator: ::core::option::Option<
+        unsafe extern "C" fn(filter: *mut BitCrusher) -> *mut PDSynthSignalValue,
+    >,
+    pub setDownsampling:
+        ::core::option::Option<unsafe extern "C" fn(filter: *mut BitCrusher, undersampling: f32)>,
+    pub setDownsamplingModulator: ::core::option::Option<
+        unsafe extern "C" fn(filter: *mut BitCrusher, signal: *mut PDSynthSignalValue),
+    >,
+    pub getDownsamplingModulator: ::core::option::Option<
+        unsafe extern "C" fn(filter: *mut BitCrusher) -> *mut PDSynthSignalValue,
+    >,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of playdate_sound_effect_bitcrusher"]
-        [::core::mem::size_of::<playdate_sound_effect_bitcrusher>() - 64usize];
+        [::core::mem::size_of::<playdate_sound_effect_bitcrusher>() - 120usize];
     ["Alignment of playdate_sound_effect_bitcrusher"]
         [::core::mem::align_of::<playdate_sound_effect_bitcrusher>() - 8usize];
     ["Offset of field: playdate_sound_effect_bitcrusher::newBitCrusher"]
@@ -3996,6 +4087,24 @@ const _: () = {
         playdate_sound_effect_bitcrusher,
         getUndersampleModulator
     ) - 56usize];
+    ["Offset of field: playdate_sound_effect_bitcrusher::setExponential"]
+        [::core::mem::offset_of!(playdate_sound_effect_bitcrusher, setExponential) - 64usize];
+    ["Offset of field: playdate_sound_effect_bitcrusher::setDepth"]
+        [::core::mem::offset_of!(playdate_sound_effect_bitcrusher, setDepth) - 72usize];
+    ["Offset of field: playdate_sound_effect_bitcrusher::setDepthModulator"]
+        [::core::mem::offset_of!(playdate_sound_effect_bitcrusher, setDepthModulator) - 80usize];
+    ["Offset of field: playdate_sound_effect_bitcrusher::getDepthModulator"]
+        [::core::mem::offset_of!(playdate_sound_effect_bitcrusher, getDepthModulator) - 88usize];
+    ["Offset of field: playdate_sound_effect_bitcrusher::setDownsampling"]
+        [::core::mem::offset_of!(playdate_sound_effect_bitcrusher, setDownsampling) - 96usize];
+    ["Offset of field: playdate_sound_effect_bitcrusher::setDownsamplingModulator"][::core::mem::offset_of!(
+        playdate_sound_effect_bitcrusher,
+        setDownsamplingModulator
+    ) - 104usize];
+    ["Offset of field: playdate_sound_effect_bitcrusher::getDownsamplingModulator"][::core::mem::offset_of!(
+        playdate_sound_effect_bitcrusher,
+        getDownsamplingModulator
+    ) - 112usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -4290,10 +4399,13 @@ pub struct playdate_sound_channel {
     pub getWetLevelSignal: ::core::option::Option<
         unsafe extern "C" fn(channel: *mut SoundChannel) -> *mut PDSynthSignalValue,
     >,
+    pub getOutputAsSource: ::core::option::Option<
+        unsafe extern "C" fn(channel: *mut SoundChannel) -> *mut SoundSource,
+    >,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of playdate_sound_channel"][::core::mem::size_of::<playdate_sound_channel>() - 128usize];
+    ["Size of playdate_sound_channel"][::core::mem::size_of::<playdate_sound_channel>() - 136usize];
     ["Alignment of playdate_sound_channel"]
         [::core::mem::align_of::<playdate_sound_channel>() - 8usize];
     ["Offset of field: playdate_sound_channel::newChannel"]
@@ -4328,6 +4440,8 @@ const _: () = {
         [::core::mem::offset_of!(playdate_sound_channel, getDryLevelSignal) - 112usize];
     ["Offset of field: playdate_sound_channel::getWetLevelSignal"]
         [::core::mem::offset_of!(playdate_sound_channel, getWetLevelSignal) - 120usize];
+    ["Offset of field: playdate_sound_channel::getOutputAsSource"]
+        [::core::mem::offset_of!(playdate_sound_channel, getOutputAsSource) - 128usize];
 };
 pub type RecordCallback = ::core::option::Option<
     unsafe extern "C" fn(
@@ -4395,10 +4509,17 @@ pub struct playdate_sound {
         ::core::option::Option<unsafe extern "C" fn(source: *mut SoundSource) -> ctypes::c_int>,
     pub signal: *const playdate_sound_signal,
     pub getError: ::core::option::Option<unsafe extern "C" fn() -> *const ctypes::c_char>,
+    pub requestMicAccess: ::core::option::Option<
+        unsafe extern "C" fn(
+            purpose: *const ctypes::c_char,
+            requestCallback: AccessRequestCallback,
+            userdata: *mut ctypes::c_void,
+        ) -> accessReply,
+    >,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of playdate_sound"][::core::mem::size_of::<playdate_sound>() - 192usize];
+    ["Size of playdate_sound"][::core::mem::size_of::<playdate_sound>() - 200usize];
     ["Alignment of playdate_sound"][::core::mem::align_of::<playdate_sound>() - 8usize];
     ["Offset of field: playdate_sound::channel"]
         [::core::mem::offset_of!(playdate_sound, channel) - 0usize];
@@ -4448,6 +4569,8 @@ const _: () = {
         [::core::mem::offset_of!(playdate_sound, signal) - 176usize];
     ["Offset of field: playdate_sound::getError"]
         [::core::mem::offset_of!(playdate_sound, getError) - 184usize];
+    ["Offset of field: playdate_sound::requestMicAccess"]
+        [::core::mem::offset_of!(playdate_sound, requestMicAccess) - 192usize];
 };
 impl Default for playdate_sound {
     fn default() -> Self {
@@ -4505,16 +4628,42 @@ pub struct PDScore {
     pub rank: u32,
     pub value: u32,
     pub player: *mut ctypes::c_char,
+    pub boardID: *mut ctypes::c_char,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of PDScore"][::core::mem::size_of::<PDScore>() - 16usize];
+    ["Size of PDScore"][::core::mem::size_of::<PDScore>() - 24usize];
     ["Alignment of PDScore"][::core::mem::align_of::<PDScore>() - 8usize];
     ["Offset of field: PDScore::rank"][::core::mem::offset_of!(PDScore, rank) - 0usize];
     ["Offset of field: PDScore::value"][::core::mem::offset_of!(PDScore, value) - 4usize];
     ["Offset of field: PDScore::player"][::core::mem::offset_of!(PDScore, player) - 8usize];
+    ["Offset of field: PDScore::boardID"][::core::mem::offset_of!(PDScore, boardID) - 16usize];
 };
 impl Default for PDScore {
+    fn default() -> Self {
+        let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::core::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct PDListScore {
+    pub rank: u32,
+    pub value: u32,
+    pub player: *mut ctypes::c_char,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of PDListScore"][::core::mem::size_of::<PDListScore>() - 16usize];
+    ["Alignment of PDListScore"][::core::mem::align_of::<PDListScore>() - 8usize];
+    ["Offset of field: PDListScore::rank"][::core::mem::offset_of!(PDListScore, rank) - 0usize];
+    ["Offset of field: PDListScore::value"][::core::mem::offset_of!(PDListScore, value) - 4usize];
+    ["Offset of field: PDListScore::player"][::core::mem::offset_of!(PDListScore, player) - 8usize];
+};
+impl Default for PDListScore {
     fn default() -> Self {
         let mut s = ::core::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -4531,7 +4680,7 @@ pub struct PDScoresList {
     pub lastUpdated: u32,
     pub playerIncluded: ctypes::c_int,
     pub limit: ctypes::c_uint,
-    pub scores: *mut PDScore,
+    pub scores: *mut PDListScore,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
@@ -4948,10 +5097,12 @@ pub struct playdate_tcp {
             length: usize,
         ) -> ctypes::c_int,
     >,
+    pub getSentBytesPending:
+        ::core::option::Option<unsafe extern "C" fn(conn: *mut TCPConnection) -> usize>,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of playdate_tcp"][::core::mem::size_of::<playdate_tcp>() - 128usize];
+    ["Size of playdate_tcp"][::core::mem::size_of::<playdate_tcp>() - 136usize];
     ["Alignment of playdate_tcp"][::core::mem::align_of::<playdate_tcp>() - 8usize];
     ["Offset of field: playdate_tcp::requestAccess"]
         [::core::mem::offset_of!(playdate_tcp, requestAccess) - 0usize];
@@ -4983,6 +5134,8 @@ const _: () = {
     ["Offset of field: playdate_tcp::read"][::core::mem::offset_of!(playdate_tcp, read) - 112usize];
     ["Offset of field: playdate_tcp::write"]
         [::core::mem::offset_of!(playdate_tcp, write) - 120usize];
+    ["Offset of field: playdate_tcp::getSentBytesPending"]
+        [::core::mem::offset_of!(playdate_tcp, getSentBytesPending) - 128usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
