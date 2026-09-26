@@ -14,6 +14,8 @@ pub mod sound;
 pub mod sprite;
 pub mod system;
 
+use crankstart_sys::{ctypes, PDSystemEvent};
+
 use {
     crate::{
         display::Display,
@@ -125,6 +127,10 @@ pub trait Game {
     fn draw_and_update_sprites(&self) -> bool {
         true
     }
+
+    fn handle_event(&mut self, event: PDSystemEvent) -> Result<(), Error> {
+        Ok(())
+    }
 }
 
 pub type GamePtr<T> = Box<T>;
@@ -166,6 +172,16 @@ impl<T: 'static + Game> GameRunner<T> {
         } else {
             log_to_console!("can't get game to update");
             self.init_failed = true;
+        }
+    }
+
+    pub fn handle_event(&mut self, event: PDSystemEvent) {
+        if let Some(game) = self.game.as_mut() {
+            if let Err(err) = game.handle_event(event) {
+                log_to_console!("Error in handle_event: {err:#}")
+            }
+        } else {
+            log_to_console!("can't get game to handle_event");
         }
     }
 
@@ -274,6 +290,10 @@ macro_rules! crankstart_game {
                         GAME_RUNNER = Some(GameRunner::new(game, playdate));
                     }
                 }
+
+                let game_runner = unsafe { GAME_RUNNER.as_mut().expect("GAME_RUNNER") };
+                game_runner.handle_event(event);
+
                 0
             }
         }
