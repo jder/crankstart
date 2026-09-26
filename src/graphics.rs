@@ -51,6 +51,9 @@ pub struct BitmapData {
     pub height: c_int,
     pub rowbytes: c_int,
     pub hasmask: bool,
+
+    pub pixel_data: *mut u8,
+    pub mask_data: *mut u8,
 }
 
 #[derive(Debug)]
@@ -64,6 +67,7 @@ impl BitmapInner {
         let mut width = 0;
         let mut height = 0;
         let mut rowbytes = 0;
+        let mut pixel_ptr = ptr::null_mut();
         let mut mask_ptr = ptr::null_mut();
         pd_func_caller!(
             (*Graphics::get_ptr()).getBitmapData,
@@ -72,13 +76,15 @@ impl BitmapInner {
             &mut height,
             &mut rowbytes,
             &mut mask_ptr,
-            ptr::null_mut(),
+            &mut pixel_ptr,
         )?;
         Ok(BitmapData {
             width,
             height,
             rowbytes,
             hasmask: !mask_ptr.is_null(),
+            pixel_data: pixel_ptr,
+            mask_data: mask_ptr,
         })
     }
 
@@ -352,6 +358,32 @@ impl Bitmap {
             rect,
         )
     }
+
+    pub fn set_mask(&self, mask: Option<Bitmap>) -> Result<(), Error> {
+        pd_func_caller!(
+            (*Graphics::get_ptr()).setBitmapMask,
+            self.inner.borrow().raw_bitmap,
+            mask.map(|mask| mask.inner.borrow().raw_bitmap)
+                .unwrap_or(ptr::null_mut()),
+        )?;
+        Ok(())
+    }
+
+    pub fn get_mask(&self) -> Result<Bitmap, Error> {
+        let raw_bitmap = pd_func_caller!(
+            (*Graphics::get_ptr()).getBitmapMask,
+            self.inner.borrow().raw_bitmap,
+        )?;
+        Ok(Bitmap::new(raw_bitmap, true))
+    }
+
+    pub fn copy(&self) -> Result<Bitmap, Error> {
+        let raw_bitmap = pd_func_caller!(
+            (*Graphics::get_ptr()).copyBitmap,
+            self.inner.borrow().raw_bitmap
+        )?;
+        Ok(Bitmap::new(raw_bitmap, true))
+    }
 }
 
 type OptionalBitmap<'a> = Option<&'a mut Bitmap>;
@@ -386,6 +418,10 @@ struct BitmapTableInner {
 }
 
 impl BitmapTableInner {
+    /// Get a bitmap from this table.
+    /// Note: there is currently UB if you keep these bitmaps around
+    /// for longer than the table itself.
+    /// TODO: these bitmaps should keep the table alive.
     fn get_bitmap(&mut self, index: usize) -> Result<Bitmap, Error> {
         if let Some(bitmap) = self.bitmaps.get(&index) {
             Ok(bitmap.clone())
@@ -428,6 +464,8 @@ impl BitmapTableInner {
 
 impl Drop for BitmapTableInner {
     fn drop(&mut self) {
+        // Calling freeBitmapTable frees all the bitmaps in self.bitmaps, so we get rid of them first.
+        self.bitmaps.clear();
         pd_func_caller_log!(
             (*Graphics::get_ptr()).freeBitmapTable,
             self.raw_bitmap_table
@@ -548,6 +586,14 @@ impl Graphics {
 
     pub fn set_draw_mode(&self, mode: LCDBitmapDrawMode) -> Result<LCDBitmapDrawMode, Error> {
         pd_func_caller!((*self.0).setDrawMode, mode)
+    }
+
+    pub fn set_stencil_image(&self, image: &Bitmap, tile: bool) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.0).setStencilImage,
+            image.inner.borrow().raw_bitmap,
+            tile as i32
+        )
     }
 
     pub fn mark_updated_rows(&self, range: RangeInclusive<i32>) -> Result<(), Error> {
