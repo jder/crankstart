@@ -19,13 +19,14 @@
 //! ```
 
 use crate::{pd_func_caller, pd_func_caller_log};
+use alloc::string::String;
 use core::marker::PhantomData;
 use crankstart_sys::ctypes;
 use crankstart_sys::LFOType;
 
 use anyhow::{anyhow, ensure, Error, Result};
 use core::ptr;
-use cstr_core::CString;
+use cstr_core::{CStr, CString};
 
 pub mod sampleplayer;
 pub use sampleplayer::{AudioSample, SamplePlayer};
@@ -182,6 +183,20 @@ impl Sound {
             headphone as ctypes::c_int,
             speaker as ctypes::c_int
         )
+    }
+
+    /// Returns the sound library's most recent error string, if one is available.
+    pub fn get_error(&self) -> Result<Option<String>> {
+        let raw_error = pd_func_caller!((*self.raw_sound).getError)?;
+        if raw_error.is_null() {
+            return Ok(None);
+        }
+
+        Ok(Some(
+            unsafe { CStr::from_ptr(raw_error) }
+                .to_string_lossy()
+                .into_owned(),
+        ))
     }
 
     pub fn new_synth(&self) -> Result<Synth> {
