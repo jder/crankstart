@@ -132,6 +132,10 @@ pub trait Game {
         Ok(())
     }
 
+    fn serial_message_callback(&mut self, data: &CStr) -> Result<(), Error> {
+        Ok(())
+    }
+
     fn cleanup(message: &str) {}
 }
 
@@ -184,6 +188,16 @@ impl<T: 'static + Game> GameRunner<T> {
             }
         } else {
             log_to_console!("can't get game to handle_event");
+        }
+    }
+
+    pub fn serial_message_callback(&mut self, data: *const ::crankstart_sys::ctypes::c_char) {
+        if let Some(game) = self.game.as_mut() {
+            if let Err(err) = game.serial_message_callback(unsafe {
+                core::ffi::CStr::from_ptr(data as *const core::ffi::c_char)
+            }) {
+                log_to_console!("Error in serial_message_callback: {err:#}")
+            }
         }
     }
 
@@ -260,6 +274,11 @@ macro_rules! crankstart_game {
                 1
             }
 
+            extern "C" fn serial_message_callback(data: *const ::crankstart_sys::ctypes::c_char) {
+                let game_runner = unsafe { GAME_RUNNER.as_mut().expect("GAME_RUNNER") };
+                game_runner.serial_message_callback(data)
+            }
+
             fn cleanup(message: &str) {
                 <$game_struct as crankstart::Game>::cleanup(message);
             }
@@ -283,6 +302,13 @@ macro_rules! crankstart_game {
                         .set_update_callback(Some(update))
                         .unwrap_or_else(|err| {
                             log_to_console!("Got error while setting update callback: {err:#}");
+                        });
+                    System::get()
+                        .set_serial_message_callback(Some(serial_message_callback))
+                        .unwrap_or_else(|err| {
+                            log_to_console!(
+                                "Got error while setting serial message callback: {err:#}"
+                            );
                         });
                     let cleanup_fn: CleanupFunction = cleanup;
                     CLEANUP_FUNCTION
@@ -374,7 +400,10 @@ fn panic(#[allow(unused)] panic_info: &::core::panic::PanicInfo) -> ! {
     }
 }
 
-use core::alloc::{GlobalAlloc, Layout};
+use core::{
+    alloc::{GlobalAlloc, Layout},
+    ffi::CStr,
+};
 
 pub(crate) struct PlaydateAllocator;
 

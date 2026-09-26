@@ -43,6 +43,16 @@ impl System {
         pd_func_caller!((*self.0).setUpdateCallback, f, ptr::null_mut())
     }
 
+    // use Game::serial_message_callback to get these
+    // Public for crankstart_game! expansions in downstream crates.
+    #[doc(hidden)]
+    pub fn set_serial_message_callback(
+        &self,
+        f: Option<unsafe extern "C" fn(data: *const crankstart_sys::ctypes::c_char)>,
+    ) -> Result<(), Error> {
+        pd_func_caller!((*self.0).setSerialMessageCallback, f)
+    }
+
     pub fn get_button_state(&self) -> Result<(PDButtons, PDButtons, PDButtons), Error> {
         let mut current: PDButtons = PDButtons(0);
         let mut pushed: PDButtons = PDButtons(0);
