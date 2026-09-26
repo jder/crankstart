@@ -10,6 +10,7 @@ pub mod file;
 pub mod geometry;
 pub mod graphics;
 pub mod lua;
+pub mod network;
 pub mod sound;
 pub mod sprite;
 pub mod system;
@@ -22,6 +23,7 @@ use {
         file::FileSystem,
         graphics::{Graphics, PDRect},
         lua::Lua,
+        network::Network,
         sound::Sound,
         sprite::{
             Sprite, SpriteCollideFunction, SpriteDrawFunction, SpriteManager, SpriteUpdateFunction,
@@ -59,6 +61,8 @@ impl Playdate {
         Sound::new(sound)?;
         let display = playdate_api.display;
         Display::new(display);
+        let network = playdate_api.network;
+        Network::new(network)?;
         Ok(Self { playdate })
     }
 }
