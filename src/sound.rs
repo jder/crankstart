@@ -134,7 +134,7 @@ impl Sound {
 
     /// Gets a handle to the Sound system.  This is the primary entry point for users.
     pub fn get() -> Self {
-        unsafe { SOUND.clone() }
+        unsafe { (&raw const SOUND).read().clone() }
     }
 
     /// Get a `FilePlayer` that can be used to stream audio from disk, e.g. for music.

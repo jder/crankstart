@@ -29,7 +29,7 @@ impl System {
     }
 
     pub fn get() -> Self {
-        unsafe { SYSTEM.clone() }
+        unsafe { (&raw const SYSTEM).read().clone() }
     }
 
     pub(crate) fn realloc(&self, ptr: *mut c_void, size: usize) -> *mut c_void {

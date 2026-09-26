@@ -17,7 +17,7 @@ impl Display {
     }
 
     pub fn get() -> Self {
-        unsafe { DISPLAY.clone() }
+        unsafe { (&raw const DISPLAY).read().clone() }
     }
 
     pub fn get_size(&self) -> Result<ScreenSize, Error> {
