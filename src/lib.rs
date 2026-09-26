@@ -131,6 +131,8 @@ pub trait Game {
     fn handle_event(&mut self, event: PDSystemEvent) -> Result<(), Error> {
         Ok(())
     }
+
+    fn cleanup(message: &str) {}
 }
 
 pub type GamePtr<T> = Box<T>;
@@ -231,7 +233,7 @@ macro_rules! crankstart_game {
                 alloc::{boxed::Box, format},
                 crankstart::{
                     graphics::PDRect, log_to_console, sprite::SpriteManager, system::System,
-                    GameRunner, Playdate,
+                    CleanupFunction, GameRunner, Playdate, CLEANUP_FUNCTION,
                 },
                 crankstart_sys::{
                     LCDRect, LCDSprite, PDSystemEvent, PlaydateAPI, SpriteCollisionResponseType,
@@ -258,6 +260,10 @@ macro_rules! crankstart_game {
                 1
             }
 
+            fn cleanup(message: &str) {
+                <$game_struct as crankstart::Game>::cleanup(message);
+            }
+
             #[no_mangle]
             extern "C" fn eventHandler(
                 playdate: *mut PlaydateAPI,
@@ -278,6 +284,9 @@ macro_rules! crankstart_game {
                         .unwrap_or_else(|err| {
                             log_to_console!("Got error while setting update callback: {err:#}");
                         });
+                    let cleanup_fn: CleanupFunction = cleanup;
+                    CLEANUP_FUNCTION
+                        .store(cleanup_fn as usize, core::sync::atomic::Ordering::SeqCst);
                     let game = match <$game_struct>::new(&mut playdate) {
                         Ok(game) => Some(game),
                         Err(err) => {
@@ -301,41 +310,62 @@ macro_rules! crankstart_game {
 }
 
 fn abort_with_addr(addr: usize) -> ! {
-    let p = addr as *mut i32;
+    let p = addr as *mut u8; // u8 to avoid alignment issues
     unsafe {
         *p = 0;
     }
     core::intrinsics::abort()
 }
 
+static PANICKING: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+#[doc(hidden)]
+pub static CLEANUP_FUNCTION: core::sync::atomic::AtomicUsize =
+    core::sync::atomic::AtomicUsize::new(0);
+
+pub type CleanupFunction = fn(&str);
+
 #[panic_handler]
-fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
+fn panic(#[allow(unused)] panic_info: &::core::panic::PanicInfo) -> ! {
+    use alloc::string::ToString;
     use arrayvec::ArrayString;
     use core::fmt::Write;
-    if let Some(location) = panic_info.location() {
+
+    // Try some cleanup
+
+    let message = {
         let mut output = ArrayString::<1024>::new();
-        let payload = if let Some(payload) = panic_info.payload().downcast_ref::<&str>() {
-            payload
-        } else {
-            "no payload"
-        };
-        write!(
-            output,
-            "panic: {} @ {}:{}\0",
-            payload,
-            location.file(),
-            location.line()
-        )
-        .expect("write");
-        System::log_to_console(output.as_str());
-    } else {
-        System::log_to_console("panic\0");
+        let message = panic_info.message();
+        write!(output, "panic: {}", message,).expect("write");
+
+        if let Some(location) = panic_info.location() {
+            write!(
+                output,
+                " @ {}:{}:{}",
+                location.file(),
+                location.line(),
+                location.column()
+            )
+            .expect("write");
+        }
+
+        output.to_string()
+    };
+
+    if !PANICKING.load(core::sync::atomic::Ordering::SeqCst) {
+        PANICKING.store(true, core::sync::atomic::Ordering::SeqCst);
+
+        let address: usize = CLEANUP_FUNCTION.load(core::sync::atomic::Ordering::SeqCst);
+        if address != 0 {
+            let cleanup: CleanupFunction = unsafe { core::mem::transmute(address) };
+            cleanup(&message);
+        }
     }
+
+    System::error(&message);
+
     #[cfg(target_os = "macos")]
     {
-        unsafe {
-            core::intrinsics::breakpoint();
-        }
+        core::intrinsics::breakpoint();
         abort_with_addr(0xdeadbeef);
     }
     #[cfg(not(target_os = "macos"))]
